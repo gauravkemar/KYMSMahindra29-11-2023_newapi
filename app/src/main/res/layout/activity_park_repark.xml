@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+        <variable
+            name="listener"
+            type="android.view.View.OnClickListener" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:clickable="true"
+        android:focusable="true">
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/parkIn_vehicle_appbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            >
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/parkIn_vehicle_toolbar"
+                android:layout_width="match_parent"
+                app:navigationIcon="@drawable/ic_arrow_back_white"
+                android:layout_height="?attr/actionBarSize">
+
+            </androidx.appcompat.widget.Toolbar>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/mapview"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintVertical_weight="0.55"
+            app:layout_constraintBottom_toTopOf="@+id/clViews"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/parkIn_vehicle_appbar" />
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/lightest_color"
+            app:layout_constraintBottom_toBottomOf="@+id/mapview"
+            app:layout_constraintEnd_toEndOf="@+id/mapview"
+            >
+            <TextView
+                android:id="@+id/tv_current_at"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/black"
+                android:layout_margin="10dp"
+                android:textSize="@dimen/tv_size_14"
+                android:text="You are at unknown location"
+                app:layout_constraintHorizontal_weight="0.60"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/btnRecenter"
+                />
+            <androidx.cardview.widget.CardView
+                android:id="@+id/btnRecenter"
+                android:layout_width="0dp"
+                android:layout_height="30dp"
+                android:layout_margin="5dp"
+                android:elevation="2dp"
+                android:onClick="@{listener::onClick}"
+                app:cardCornerRadius="20dp"
+                app:layout_constraintHorizontal_weight="0.40"
+                app:layout_constraintStart_toEndOf="@+id/tv_current_at"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+
+               >
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/blue"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp">
+
+                    <ImageView
+                        android:layout_width="15dp"
+                        android:layout_height="15dp"
+                        android:src="@drawable/navigation"
+                        app:tint="@color/white" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="RE - CENTER"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+
+            </androidx.cardview.widget.CardView>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clViews"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:paddingTop="10dp"
+            app:layout_constraintVertical_weight="0.45"
+            app:layout_constraintTop_toBottomOf="@+id/mapview"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <RadioGroup
+                android:id="@+id/radioGroup"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:padding="1dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/layoutCalibrate"
+                android:background="@drawable/round_border_grey"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatRadioButton
+                    android:id="@+id/radioBtn1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/radio_btn_selector_left"
+                    android:button="@android:color/transparent"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:text="RFID"
+                    android:textColor="@drawable/radiobuttonstate" />
+
+                <androidx.appcompat.widget.AppCompatRadioButton
+                    android:id="@+id/radioBtn2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/radio_btn_selector_right_red"
+                    android:textSize="18sp"
+                    android:button="@android:color/transparent"
+                    android:gravity="center"
+                    android:text="BARCODE"
+                    android:textColor="@drawable/radiobuttonstate" />
+
+            </RadioGroup>
+
+            <LinearLayout
+                android:id="@+id/layoutCalibrate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintTop_toBottomOf="@+id/radioGroup"
+                app:layout_constraintBottom_toTopOf="@+id/nested_scroll"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <!--<Button
+                    android:id="@+id/getLocation"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="10dp"
+                    android:onClick="@{listener::onClick}"
+                    android:text="Calibrate"
+                    android:textStyle="bold"
+                    android:visibility="visible" />-->
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/scanBarcode"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dp"
+                    android:visibility="gone"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginEnd="20dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@color/colorPrimary"
+                    android:onClick="@{listener::onClick}"
+                    android:paddingStart="30dp"
+                    android:paddingEnd="30dp"
+                    android:text="Scan Barcode"
+                    android:textColor="@color/white" />
+
+                <!--<Button
+                    android:id="@+id/scanBarcode"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="10dp"
+                    android:onClick="@{listener::onClick}"
+                    android:text="Scan Barcode"
+                    android:textStyle="bold"
+                    android:visibility="visible" />-->
+
+            </LinearLayout>
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/nested_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                app:layout_constraintTop_toBottomOf="@+id/layoutCalibrate"
+                app:layout_constraintBottom_toTopOf="@+id/park_repark_btn"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                >
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    >
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/llBarcode"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_marginBottom="10dp"
+                        app:boxCornerRadiusTopStart="10dp"
+                        app:boxCornerRadiusTopEnd="10dp"
+                        app:boxCornerRadiusBottomStart="10dp"
+                        app:boxCornerRadiusBottomEnd="@dimen/dimen_10"
+                      app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintHorizontal_weight="0.7"
+                        app:layout_constraintVertical_chainStyle="packed"
+                        app:layout_constraintBottom_toTopOf="@+id/clVehicleImgs"
+                        app:layout_constraintEnd_toStartOf="@+id/btnClear"
+                        app:layout_constraintStart_toStartOf="parent">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/tvBarcode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="@dimen/tv_size_14"
+                            android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                            android:hint="Scan RFID TAG"
+                            android:inputType="text"
+                            android:padding="10dp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/btnClear"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="10dp"
+                        android:layout_marginBottom="20dp"
+                        android:clickable="true"
+                        android:onClick="@{listener::onClick}"
+                        android:layout_marginTop="5dp"
+                        app:cardCornerRadius="10dp"
+                        app:layout_constraintHorizontal_weight="0.3"
+                        app:layout_constraintBottom_toTopOf="@+id/clVehicleImgs"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/llBarcode"
+                        app:layout_constraintTop_toTopOf="@id/llBarcode"
+                        >
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:textStyle="bold"
+                            android:padding="10dp"
+                            android:textSize="@dimen/tv_size_14"
+
+                            android:gravity="center"
+                            android:background="@drawable/round_border_blue"
+                            android:textColor="@color/colorPrimary"
+                            android:text="CLEAR"
+                            />
+                    </com.google.android.material.card.MaterialCardView>
+                    <!--<Button
+                        android:id="@+id/btnClear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="10dp"
+                        android:backgroundTint="@color/greyLight"
+                        android:onClick="@{listener::onClick}"
+                        android:text="Clear"
+                        android:textSize="@dimen/tv_size_14"
+                        android:layout_marginTop="5dp"
+                        android:textColor="@color/black"
+                        app:layout_constraintBottom_toBottomOf="@+id/llBarcode"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/llBarcode"
+                        app:layout_constraintTop_toTopOf="@+id/llBarcode" />-->
+
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/clVehicleImgs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="visible"
+                        android:background="@drawable/round_border_grey"
+                        android:layout_margin="@dimen/dimen_10"
+                        app:layout_constraintVertical_chainStyle="packed"
+                        app:layout_constraintTop_toBottomOf="@+id/llBarcode"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent">
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:id="@+id/clDetails1"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent">
+
+                            <TextView
+                                android:id="@+id/tv_vin"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:padding="10dp"
+                                android:text="VIN"
+                                android:textColor="@color/black"
+                                android:textSize="@dimen/tv_size_16"
+                                app:layout_constraintEnd_toStartOf="@id/tv_vin_value"
+                                app:layout_constraintHorizontal_weight="0.4"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <View
+                                android:id="@+id/view_horizontal_1"
+                                android:layout_width="1dp"
+                                android:layout_height="0dp"
+                                android:background="#AAABAE"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toStartOf="@+id/tv_vin_value"
+                                app:layout_constraintStart_toEndOf="@+id/tv_vin"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <TextView
+                                android:id="@+id/tv_vin_value"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:padding="10dp"
+                                android:text=""
+                                android:textColor="@color/black"
+                                android:textSize="@dimen/tv_size_14"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintHorizontal_weight="0.6"
+                                app:layout_constraintStart_toEndOf="@id/tv_vin"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                        <View
+                            android:id="@+id/view1"
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#AAABAE"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/clDetails1" />
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:id="@+id/clDetails2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/view1">
+
+                            <TextView
+                                android:id="@+id/tv_modelCode"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:padding="10dp"
+                                android:text="Model Code"
+                                android:textColor="@color/black"
+                                android:textSize="@dimen/tv_size_16"
+                                app:layout_constraintEnd_toStartOf="@id/tv_modelCode_value"
+                                app:layout_constraintHorizontal_weight="0.4"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <View
+                                android:id="@+id/view_horizontal_2"
+                                android:layout_width="1dp"
+                                android:layout_height="0dp"
+                                android:background="#AAABAE"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toStartOf="@+id/tv_modelCode_value"
+                                app:layout_constraintStart_toEndOf="@+id/tv_modelCode"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <TextView
+                                android:id="@+id/tv_modelCode_value"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:padding="10dp"
+                                android:text=""
+                                android:textColor="@color/black"
+                                android:textSize="@dimen/tv_size_14"
+                                app:layout_constraintBottom_toBottomOf="@id/tv_modelCode"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintHorizontal_weight="0.6"
+                                app:layout_constraintStart_toEndOf="@id/tv_modelCode"
+                                app:layout_constraintTop_toTopOf="@id/tv_modelCode" />
+
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                        <View
+                            android:id="@+id/view2"
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#AAABAE"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/clDetails2" />
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:id="@+id/clDetails3"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/view2"
+                            app:layout_constraintBottom_toBottomOf="parent">
+
+                            <TextView
+                                android:id="@+id/tv_last_status"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:padding="10dp"
+                                android:text="Status"
+                                android:textColor="@color/black"
+                                android:textSize="@dimen/tv_size_16"
+                                app:layout_constraintEnd_toStartOf="@id/tv_status_value"
+                                app:layout_constraintHorizontal_weight="0.4"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <View
+                                android:id="@+id/view_horizontal_3"
+                                android:layout_width="1dp"
+                                android:layout_height="0dp"
+                                android:background="#AAABAE"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toStartOf="@+id/tv_status_value"
+                                app:layout_constraintStart_toEndOf="@+id/tv_last_status"
+                                app:layout_constraintTop_toTopOf="parent" />
+
+                            <TextView
+                                android:id="@+id/tv_status_value"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:padding="10dp"
+                                android:text=""
+                                android:textColor="@color/black"
+                                android:textSize="@dimen/tv_size_14"
+                                app:layout_constraintBottom_toBottomOf="@id/tv_last_status"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintHorizontal_weight="0.6"
+                                app:layout_constraintStart_toEndOf="@id/tv_last_status"
+                                app:layout_constraintTop_toTopOf="@id/tv_last_status" />
+
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.core.widget.NestedScrollView>
+
+
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/park_repark_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:backgroundTint="@color/lighter_grey"
+                android:enabled="false"
+                android:padding="10dp"
+                android:text="Park Vehicle"
+                android:textAllCaps="false"
+                android:textSize="@dimen/tv_size_14"
+                app:cornerRadius="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+
+               />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

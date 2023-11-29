@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout>
+    <androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+      >
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/production_out_appbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            >
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/production_out_toolbar"
+                android:layout_width="match_parent"
+                app:navigationIcon="@drawable/ic_arrow_back_white"
+                android:layout_height="?attr/actionBarSize">
+
+            </androidx.appcompat.widget.Toolbar>
+        </com.google.android.material.appbar.AppBarLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/production_out_appbar"
+            >
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutEdSearch"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                app:boxCornerRadiusBottomEnd="10dp"
+                app:boxCornerRadiusBottomStart="10dp"
+                app:boxCornerRadiusTopEnd="10dp"
+                app:boxCornerRadiusTopStart="10dp"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintHorizontal_weight="0.7"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/mcv_btnClear"
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Vehicle Identification Number"
+                    android:inputType="text"
+                    android:padding="10dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mcv_btnClear"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:layout_marginTop="5dp"
+                app:layout_constraintHorizontal_weight="0.3"
+                app:cardCornerRadius="10dp"
+                app:layout_constraintStart_toEndOf="@+id/layoutEdSearch"
+                app:layout_constraintTop_toTopOf="@+id/layoutEdSearch"
+                app:layout_constraintBottom_toBottomOf="@+id/layoutEdSearch"
+                app:layout_constraintEnd_toEndOf="parent"
+                >
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:textStyle="bold"
+                    android:padding="10dp"
+                    android:textSize="@dimen/tv_size_14"
+
+                    android:gravity="center"
+                    android:background="@drawable/round_border_blue"
+                    android:textColor="@color/colorPrimary"
+                    android:text="CLEAR"
+                    />
+            </com.google.android.material.card.MaterialCardView>
+            <!-- <com.google.android.material.button.MaterialButton
+                 android:id="@+id/btnClear"
+                 android:layout_width="0dp"
+                 android:layout_height="0dp"
+                 android:layout_marginEnd="10dp"
+                 android:backgroundTint="@color/greyLight"
+                 android:text="Clear"
+                 android:layout_marginTop="5dp"
+                 android:clickable="true"
+                 app:layout_constraintHorizontal_weight="0.3"
+                 android:background="@drawable/round_border_blue"
+                 android:textColor="@color/black"
+                 app:layout_constraintStart_toEndOf="@+id/layoutEdSearch"
+                 app:layout_constraintTop_toTopOf="@+id/layoutEdSearch"
+                 app:layout_constraintBottom_toBottomOf="@+id/layoutEdSearch"
+                 app:layout_constraintEnd_toEndOf="parent"
+                />-->
+
+            <View
+                android:id="@+id/view1"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="10dp"
+                android:background="@color/grey"
+
+                app:layout_constraintTop_toBottomOf="@+id/layoutEdSearch" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/tvNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/dimen_10"
+            android:gravity="start"
+            android:visibility="visible"
+            android:lines="1"
+            android:text="@string/note_prd"
+            android:textColor="#7E7E7E"
+            android:textSize="13sp"
+            app:layout_constraintTop_toBottomOf="@+id/cl_search"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/vehicle_list_rc"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_margin="5dp"
+            tools:listitem="@layout/production_out_list_item"
+            app:layout_constraintTop_toBottomOf="@+id/tvNote"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
