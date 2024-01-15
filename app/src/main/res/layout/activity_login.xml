@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
@@ -175,10 +176,8 @@
 
 </layout>
 
+-->
 
-
-    <!--
-    <?xml version="1.0" encoding="utf-8"?>
     <layout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools">
@@ -219,11 +218,11 @@
             <ImageView
                 android:id="@+id/ivLoginLogo"
                 android:layout_width="wrap_content"
-                android:layout_height="120dp"
+                android:layout_height="150dp"
                 android:scaleType="fitXY"
                 android:padding="@dimen/dimen_10"
                 android:adjustViewBounds="true"
-                android:src="@drawable/mm_yard_2"
+                android:src="@drawable/mm_yard_new_2"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -292,7 +291,7 @@
                                     android:inputType="text"
                                     android:padding="10dp" />
                             </com.google.android.material.textfield.TextInputLayout>
-                            &lt;!&ndash; <com.google.android.material.textfield.TextInputEditText
+                            <!-- <com.google.android.material.textfield.TextInputEditText
                                  android:id="@+id/edUsername"
                                  android:layout_width="match_parent"
                                  android:layout_height="wrap_content"
@@ -315,9 +314,9 @@
                                  android:textSize="16sp"
                                  app:layout_constraintEnd_toEndOf="parent"
                                  app:layout_constraintStart_toStartOf="parent"
-                                 app:layout_constraintTop_toTopOf="parent" />&ndash;&gt;
+                                 app:layout_constraintTop_toTopOf="parent" />-->
 
-                            &lt;!&ndash;          <com.google.android.material.textfield.TextInputEditText
+                            <!--          <com.google.android.material.textfield.TextInputEditText
                                           android:id="@+id/edPass"
                                           android:layout_width="match_parent"
                                           android:layout_height="wrap_content"
@@ -341,7 +340,7 @@
                                           app:layout_constraintEnd_toEndOf="parent"
                                           app:layout_constraintStart_toStartOf="parent"
                                           app:layout_constraintTop_toBottomOf="@+id/tllUsername" />
-                      &ndash;&gt;
+                      -->
 
 
                             <com.google.android.material.textfield.TextInputLayout
@@ -404,7 +403,19 @@
             </ScrollView>
 
 
+<TextView
+    android:id="@+id/tvAndroidId"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="@dimen/tv_size_12"
+    android:visibility="gone"
+    android:textColor="@color/white"
+    app:layout_constraintBottom_toTopOf="@+id/tvBtmTxt"
+    app:layout_constraintStart_toStartOf="parent"
+
+    />
             <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/tvBtmTxt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/white"
@@ -427,7 +438,6 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </layout>
-    -->
 
 
 

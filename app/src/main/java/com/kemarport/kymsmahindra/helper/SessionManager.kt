@@ -207,7 +207,7 @@ class SessionManager(context: Context) {
     fun showToastAndHandleErrors(resultResponse: String,context: Activity) {
 
         when (resultResponse) {
-            "Unauthorized", "Authentication token expired", Constants.CONFIG_ERROR -> {
+            "Session Expired ! Please relogin", "Authentication token expired", Constants.CONFIG_ERROR -> {
                 showCustomDialog(
                     "Session Expired",
                     "Please re-login to continue",

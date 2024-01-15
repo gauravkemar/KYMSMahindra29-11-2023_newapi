@@ -8,8 +8,8 @@ data class GetSearchVehiclesListResponse (
     val currentLocation: String,
     val coordinates: String,
     val colorDescription: String,
-    val engineNo: String,
-    val modelDescription: String,
+    val country: String,
+    val modelCode: String,
     val vehicleStatus: String,
     val vin: String
 ): Parcelable {
@@ -29,8 +29,8 @@ data class GetSearchVehiclesListResponse (
         parcel.writeString(currentLocation)
         parcel.writeString(coordinates)
         parcel.writeString(colorDescription)
-        parcel.writeString(engineNo)
-        parcel.writeString(modelDescription)
+        parcel.writeString(country)
+        parcel.writeString(modelCode)
         parcel.writeString(vehicleStatus)
         parcel.writeString(vin)
     }

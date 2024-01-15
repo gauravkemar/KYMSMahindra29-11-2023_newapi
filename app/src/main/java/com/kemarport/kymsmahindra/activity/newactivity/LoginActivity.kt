@@ -54,6 +54,7 @@ class LoginActivity : AppCompatActivity() {
             .apply()
          val androidId: String = Settings.Secure.getString(this.contentResolver, Settings.Secure.ANDROID_ID)
         Log.d("android device id",androidId)
+        binding.tvAndroidId.setText("$androidId")
         progress = ProgressDialog(this)
         progress.setMessage("Please Wait...")
 
@@ -357,13 +358,12 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
-    fun login() {
+ /*   fun login() {
         try {
             // Fetching Android ID and storing it into a constant
-
-            val userId = binding.edUsername.text.toString()
-            val pass = binding.edPass.text.toString()
-            if (userId.isNotEmpty() && pass.isNotEmpty()) {
+            val userId = binding.edUsername.text.toString().trim()
+            val pass = binding.edPass.text.toString().trim()
+            if ((userId.isNotEmpty() && userId.length>4) && pass.isNotEmpty()) {
                 val loginRequest = LoginRequest(pass, userId,Utils.getDeviceId(this@LoginActivity))
                 viewModel.login(Constants.BASE_URL, loginRequest)
             } else {
@@ -380,6 +380,37 @@ class LoginActivity : AppCompatActivity() {
                 Toasty.LENGTH_SHORT
             ).show()
         }
+    }*/
+ fun login() {
+     try {
+         // Fetching user credentials from input fields
+         val userId = binding.edUsername.text.toString().trim()
+         val password = binding.edPass.text.toString().trim()
+
+         // Validate user input
+         val validationMessage = validateInput(userId, password)
+         if (validationMessage == null) {
+             val loginRequest = LoginRequest(password, userId, Utils.getDeviceId(this@LoginActivity))
+             viewModel.login(Constants.BASE_URL, loginRequest)
+         } else {
+             showErrorMessage(validationMessage)
+         }
+     } catch (e: Exception) {
+         showErrorMessage(e.printStackTrace().toString())
+     }
+ }
+
+    private fun validateInput(userId: String, password: String): String? {
+        return when {
+            userId.isEmpty() || password.isEmpty() -> "Please enter valid credentials"
+            userId.length < 5 -> "Please enter at least 5 characters for the username"
+            password.length < 6 -> "Please enter a password with more than 6 characters"
+            else -> null
+        }
+    }
+
+    private fun showErrorMessage(message: String) {
+        Toasty.warning(this@LoginActivity, message, Toasty.LENGTH_SHORT).show()
     }
 
     private fun showProgressBar() {

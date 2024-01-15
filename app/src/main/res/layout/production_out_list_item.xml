@@ -8,6 +8,7 @@
         android:layout_height="wrap_content">
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/mcvPrdBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#f0f1f2"
@@ -40,11 +41,13 @@
                 android:layout_height="wrap_content">
 
                 <ImageView
-                    android:id="@+id/ivStatus"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_margin="10dp"
+                    android:id="@+id/ivCarImg"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:scaleType="fitCenter"
+                    android:layout_marginEnd="@dimen/dimen_10"
                     android:src="@drawable/ic_car"
+                    app:layout_constraintHorizontal_weight="0.25"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@+id/lldata"
                     app:layout_constraintStart_toStartOf="parent"
@@ -56,9 +59,10 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    app:layout_constraintHorizontal_weight="0.75"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/ivStatus"
+                    app:layout_constraintStart_toEndOf="@+id/ivCarImg"
                     app:layout_constraintTop_toTopOf="parent">
 
                     <TextView
@@ -68,7 +72,7 @@
                         android:layout_marginTop="2dp"
                         android:gravity="start|bottom"
                         android:lines="1"
-                        android:text="4Y1SL65848Z411439"
+                        android:text=""
                         android:textColor="@color/black"
                         android:textSize="@dimen/tv_size_14"
                         android:textStyle="bold" />
@@ -96,7 +100,7 @@
                             android:gravity="start|bottom"
                             android:lines="1"
                             android:visibility="visible"
-                            android:text="XUV1000"
+                            android:text=""
                             android:textColor="@color/black"
                             android:textSize="@dimen/tv_size_14"
                             app:layout_constraintEnd_toStartOf="@+id/tvModelDescription"
@@ -110,7 +114,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="start"
                             android:lines="1"
-                            android:text="XYZ001"
+                            android:text=""
                             android:visibility="visible"
                             android:paddingStart="5dp"
                             android:textColor="@color/black"
@@ -129,7 +133,7 @@
                         android:lines="1"
                         android:layout_margin="2dp"
                         android:textColor="@color/black"
-                        android:text="White"
+                        android:text=""
                         android:textSize="@dimen/tv_size_14" />
 
 

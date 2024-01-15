@@ -11,6 +11,7 @@ import android.os.Handler
 import android.provider.Settings
 import android.view.View
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -68,8 +69,9 @@ class HomeMenuActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding= DataBindingUtil.setContentView(this,R.layout.activity_home_menu)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         session = SessionManager(this)
-        binding.homeToolbar.setTitle("KYMS Mahindra")
+        binding.homeToolbar.setTitle("KYMS")
         binding.homeToolbar.setTitleTextColor(resources.getColor(android.R.color.white))
 
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager

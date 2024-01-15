@@ -16,6 +16,7 @@ import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -45,6 +46,7 @@ import com.kemarport.kymsmahindra.repository.KYMSRepository
 import com.kemarport.kymsmahindra.viewmodel.newviewmodel.parkrepark.ParkReparkViewModel
 import com.kemarport.kymsmahindra.viewmodel.newviewmodel.parkrepark.ParkReparkViewModelFactory
 import com.symbol.emdk.EMDKManager
+import com.symbol.emdk.EMDKResults
 import com.symbol.emdk.barcode.BarcodeManager
 import com.symbol.emdk.barcode.ScanDataCollection
 import com.symbol.emdk.barcode.Scanner
@@ -150,16 +152,33 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     fun stopInventory() {
         rfidHandler!!.stopInventory()
     }
+    private fun defaultVinApiCall(){
+        val intent = intent
+        val vin = intent.getStringExtra("vin")
+        binding.tvBarcode.setText(vin)
+        vin?.let { getPrdOutStatus(it) }
+    }
+    fun getPrdOutStatus(scanned: String) {
 
+        viewModel.getVehicleStatus(
+            token!!,
+            Constants.BASE_URL,
+            GetVehicleStatusRequest( scanned,"")
+        )
+
+    }
     var coordinatePref = ""
 
     lateinit var coordinates: ArrayList<LatLng>
     private var currentLatitude: Double = 0.0
     private var currentLongitude: Double = 0.0
+
+    private var flagCurrentLoc=true
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = DataBindingUtil.     setContentView(this,R.layout.activity_dispatch_vehicle)
+        binding = DataBindingUtil.setContentView(this,R.layout.activity_dispatch_vehicle)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.listener = this
         binding.parkInVehicleToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white))
         binding.parkInVehicleToolbar.setTitle("Dispatch Vehicle")
@@ -202,17 +221,19 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         userName = userDetails["userName"]
         locationId = userDetails["locationId"]
 
-
+        defaultVinApiCall()
         // binding.radioGroup.check(binding.radioBtn2.getId())
 
         if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
             binding.scanBarcode.visibility = View.GONE
             //binding.radioGroup.visibility = View.VISIBLE
+            defaultRFID()
+           // initBarcode()
         } else {
             binding.scanBarcode.visibility = View.VISIBLE
             // binding.radioGroup.visibility = View.GONE
         }
-        defaultRFID()
+
         /*binding.radioGroup.setOnCheckedChangeListener { buttonView, selected ->
             if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
                 if (selected == binding.radioBtn1.getId()) {
@@ -311,6 +332,14 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                 is Resource.Success -> {
                     hideProgressBar()
                     response.data?.let { resultResponse ->
+                        if(resultResponse.message!=null)
+                        {
+                            Toasty.success(
+                                this@DispatchVehicleActivity,
+                                resultResponse.message.toString(),
+                                Toasty.LENGTH_SHORT
+                            ).show()
+                        }
 
                         clear()
                         if (resultResponse.responseMessage != null) {
@@ -480,6 +509,19 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                                 }
                             }
                         }
+                        var vehicleInfoMessage=resultResponse.message
+
+                        if(!vehicleInfoMessage.isNullOrEmpty())
+                        {
+                            Toasty.warning(
+                                this@DispatchVehicleActivity,
+                                vehicleInfoMessage,
+                                Toasty.LENGTH_SHORT
+                            ).show()
+
+                        }
+
+
                     }
                 }
                 is Resource.Error -> {
@@ -529,6 +571,39 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             ).show()
         }
 
+    }
+    fun getVehicleStatusBarcode(scanned: String) {
+        if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
+            viewModel.getVehicleStatus(
+                token!!,
+                Constants.BASE_URL,
+                GetVehicleStatusRequest(scanned,"")
+            )
+        } else {
+            Toasty.warning(
+                this@DispatchVehicleActivity,
+                "You are not inside Service Area!!",
+                Toasty.LENGTH_SHORT
+            ).show()
+        }
+
+    }
+
+    private fun initBarcode(){
+        isRFIDInit = false
+        isBarcodeInit = true
+        //rfidHandler!!.onPause()
+        //rfidHandler!!.onDestroy()
+        Thread.sleep(1000)
+        val results = EMDKManager.getEMDKManager(this@DispatchVehicleActivity, this)
+        if (results.statusCode != EMDKResults.STATUS_CODE.SUCCESS) {
+            Log.e(TAG, "EMDKManager object request failed!")
+        } else {
+            Log.e(
+                TAG,
+                "EMDKManager object initialization is   in   progress......."
+            )
+        }
     }
     fun checkVehicleInsideGeofenceRFIDNew(scanned: String, s: String) {
         try {
@@ -645,6 +720,11 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                         .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
                 currentMarker = map!!.addMarker(markerOptions)
                 Log.e(TAG, "Latitude/Longitude - $newLat,$newLng")
+                if(flagCurrentLoc)
+                {
+                    recentr()
+                    flagCurrentLoc=false
+                }
             }
         })
     }
@@ -751,6 +831,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
         }
+        flagCurrentLoc=true
     }
 
     fun initBarcodeManager() {
@@ -804,6 +885,8 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             }
             runOnUiThread { binding.tvBarcode.setText(dataStr) }
             // checkVehicleInsideGeofenceBarcode(dataStr.toString())
+
+            dataStr?.let { getVehicleStatusBarcode(it) }
 
             Log.e(TAG, "Barcode Data : $dataStr")
         }
@@ -863,12 +946,20 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             }
 
             R.id.btnRecenter -> {
-                if (currentMarker != null) currentMarker!!.remove()
-                val currentPos = LatLng(newLat, newLng)
-                map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-                map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
-                println("la-$newLat, $newLng")
+                recentr()
+
             }
+        }
+    }
+
+    fun recentr(){
+        if (currentMarker != null) currentMarker!!.remove()
+        val currentPos = LatLng(newLat, newLng)
+        if(currentPos!=null && map!=null)
+        {
+            map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            println("la-$newLat, $newLng")
         }
     }
 
@@ -910,7 +1001,6 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     fun parseStringToList(inputString: String): ArrayList<LatLng> {
         val regex = Regex("\\((-?\\d+\\.\\d+),(-?\\d+\\.\\d+)\\)")
         val matches = regex.findAll(inputString)
-
         val latLngList = ArrayList<LatLng>()
         for (match in matches) {
             val (latitudeStr, longitudeStr) = match.destructured
@@ -942,5 +1032,4 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             else -> return super.onOptionsItemSelected(item)
         }
     }
-
 }

@@ -24,8 +24,8 @@ class VehicleDetailsScreen : AppCompatActivity() {
         supportActionBar?.setDisplayShowHomeEnabled(true)
         val previousScreenDataModel = intent.getParcelableExtra<GetSearchVehiclesListResponse>("model")
         binding.tvColorValue.text = previousScreenDataModel?.colorDescription
-        binding.tvEngineValue.text = previousScreenDataModel?.engineNo
-        binding.tvModelValue.text = previousScreenDataModel?.modelDescription
+        //binding.tvEngineValue.text = previousScreenDataModel?.country
+        binding.tvModelValue.text = previousScreenDataModel?.modelCode
         binding.tvVinValue.text = previousScreenDataModel?.vin
         binding.tvCurrentLocationValue.text = previousScreenDataModel?.currentLocation
 

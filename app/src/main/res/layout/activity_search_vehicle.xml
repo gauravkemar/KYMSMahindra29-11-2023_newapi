@@ -112,7 +112,7 @@
                 app:cardElevation="5dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/clSpinnerModel"
-                app:layout_constraintHorizontal_weight="1"
+                app:layout_constraintHorizontal_weight="0.5"
                 app:layout_constraintStart_toEndOf="@+id/layoutInProcess"
                 app:layout_constraintTop_toTopOf="parent">
 
@@ -168,17 +168,22 @@
 
                 <Spinner
                     android:id="@+id/spinnerModel"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_centerVertical="true"
                     android:layout_gravity="center"
                     android:background="@android:color/transparent"
                     android:gravity="center"
-                    android:paddingStart="5dp"
+                    android:paddingStart="2dp"
                     android:spinnerMode="dropdown"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/imModelCode"
                     />
 
                 <ImageView
+                    android:id="@+id/imModelCode"
                     android:layout_width="25dp"
                     android:layout_height="25dp"
                     android:src="@drawable/ic_arrow_down"
@@ -204,7 +209,7 @@
 
                 <Spinner
                     android:id="@+id/spinnerColor"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_centerVertical="true"
                     android:layout_gravity="center"
@@ -212,9 +217,14 @@
                     android:gravity="center"
                     android:paddingStart="5dp"
                     android:spinnerMode="dropdown"
+                    app:layout_constraintEnd_toStartOf="@+id/imgColor"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
                     />
 
                 <ImageView
+                    android:id="@+id/imgColor"
                     android:layout_width="25dp"
                     android:layout_height="25dp"
                     android:src="@drawable/ic_arrow_down"

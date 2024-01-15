@@ -4,8 +4,10 @@
     android:id="@+id/text_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:textSize="16sp"
+    android:textSize="@dimen/tv_size_12"
     android:gravity="start|center"
-    android:padding="10dp"
+    android:lines="2"
+    android:ellipsize="end"
+    android:padding="5dp"
     android:textColor="@color/black"
     />

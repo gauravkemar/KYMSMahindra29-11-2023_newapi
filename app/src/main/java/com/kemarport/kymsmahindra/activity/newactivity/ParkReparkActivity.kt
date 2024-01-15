@@ -2,6 +2,7 @@ package com.kemarport.kymsmahindra.activity.newactivity
 
 import android.Manifest
 import android.app.ProgressDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -10,12 +11,14 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.AttributeSet
 import android.util.Log
 import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -45,6 +48,7 @@ import com.kemarport.kymsmahindra.repository.KYMSRepository
 import com.kemarport.kymsmahindra.viewmodel.newviewmodel.parkrepark.ParkReparkViewModel
 import com.kemarport.kymsmahindra.viewmodel.newviewmodel.parkrepark.ParkReparkViewModelFactory
 import com.symbol.emdk.EMDKManager
+import com.symbol.emdk.EMDKResults
 import com.symbol.emdk.barcode.BarcodeManager
 import com.symbol.emdk.barcode.ScanDataCollection
 import com.symbol.emdk.barcode.Scanner
@@ -153,9 +157,11 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
     private var currentLatitude: Double = 0.0
     private var currentLongitude: Double = 0.0
     val locationMap = HashMap<String, ArrayList<LatLng>>()
+    private var flagCurrentLoc=true
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_park_repark)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.listener = this
         binding.parkInVehicleToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white))
         setSupportActionBar(binding.parkInVehicleToolbar)
@@ -195,11 +201,12 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
             binding.scanBarcode.visibility = View.GONE
             //binding.radioGroup.visibility = View.VISIBLE
+            defaultRFID()
+            //initBarcode()
         } else {
             binding.scanBarcode.visibility = View.VISIBLE
             // binding.radioGroup.visibility = View.GONE
         }
-        defaultRFID()
         defaultVinApiCall()
         getInternalYardLoc()
         /*binding.radioGroup.setOnCheckedChangeListener { buttonView, selected ->
@@ -303,6 +310,14 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                     clear()
 
                     response.data?.let { resultResponse ->
+                        if(resultResponse.message!=null)
+                        {
+                            Toasty.success(
+                                this@ParkReparkActivity,
+                                resultResponse.message.toString(),
+                                Toasty.LENGTH_SHORT
+                            ).show()
+                        }
                         if (resultResponse.responseMessage != null) {
                             Toasty.success(
                                 this@ParkReparkActivity,
@@ -347,80 +362,96 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                     response.data?.let { resultResponse ->
                         resultResponse?.let { vehicleInfo ->
                             binding.clVehicleImgs.visibility = View.VISIBLE
-                            with(binding) {
-                                tvVinValue.text = vehicleInfo.vin.orEmpty()
-                                tvModelCodeValue.text = vehicleInfo.modelCode?.toString().orEmpty()
-                                tvStatusValue.text = vehicleInfo.status.orEmpty()
-                                ViewCompat.setBackgroundTintList(
-                                    parkReparkBtn,
-                                    ColorStateList.valueOf(color)
-                                )
-                                parkReparkBtn.isEnabled = true
-                                when (vehicleInfo.status) {
-                                    "Production Out" -> {
-                                        parkReparkBtn.text = "Park Vehicle"
-                                        parkReparkBtn.setOnClickListener {
-                                            vehicleInfo.vin?.let { vin ->
-                                                checkVehicleInsideGeofenceRFIDNew(vin, "Parking")
+                            var status =vehicleInfo.status
+                            var vin =vehicleInfo.vin
+                            if (!vin.isNullOrEmpty() && !status.isNullOrEmpty())
+                            {
+                                with(binding) {
+                                    tvVinValue.text = vehicleInfo.vin.orEmpty()
+                                    tvModelCodeValue.text = vehicleInfo.modelCode?.toString().orEmpty()
+                                    tvStatusValue.text = vehicleInfo.status.orEmpty()
+                                    ViewCompat.setBackgroundTintList(
+                                        parkReparkBtn,
+                                        ColorStateList.valueOf(color)
+                                    )
+                                    parkReparkBtn.isEnabled = true
+                                    when (vehicleInfo.status) {
+                                        "Production Out" -> {
+                                            parkReparkBtn.text = "Park Vehicle"
+                                            parkReparkBtn.setOnClickListener {
+                                                vehicleInfo.vin?.let { vin ->
+                                                    checkVehicleInsideGeofenceRFIDNew(vin, "Parking")
+                                                }
                                             }
                                         }
-                                    }
 
-                                    "Parking" -> {
-                                        parkReparkBtn.text = "Repark Vehicle"
-                                        parkReparkBtn.setOnClickListener {
-                                            vehicleInfo.vin?.let { vin ->
-                                                checkVehicleInsideGeofenceRFIDNew(vin, "Re Park")
+                                        "Parking" -> {
+                                            parkReparkBtn.text = "Repark Vehicle"
+                                            parkReparkBtn.setOnClickListener {
+                                                vehicleInfo.vin?.let { vin ->
+                                                    checkVehicleInsideGeofenceRFIDNew(vin, "Re Park")
+                                                }
                                             }
                                         }
-                                    }
 
-                                    "Re Park" -> {
-                                        parkReparkBtn.text = "Repark Vehicle"
-                                        parkReparkBtn.setOnClickListener {
-                                            vehicleInfo.vin?.let { vin ->
-                                                checkVehicleInsideGeofenceRFIDNew(vin, "Re Park")
+                                        "Re Park" -> {
+                                            parkReparkBtn.text = "Repark Vehicle"
+                                            parkReparkBtn.setOnClickListener {
+                                                vehicleInfo.vin?.let { vin ->
+                                                    checkVehicleInsideGeofenceRFIDNew(vin, "Re Park")
+                                                }
                                             }
                                         }
-                                    }
 
-                                    "Delivered" -> {
-                                        ViewCompat.setBackgroundTintList(
-                                            parkReparkBtn,
-                                            ColorStateList.valueOf(grey)
-                                        )
-                                        parkReparkBtn.text = "Park Vehicle"
-                                        parkReparkBtn.isEnabled = false
-                                        Toast.makeText(
-                                            this@ParkReparkActivity,
-                                            "Vehicle already Delivered",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
+                                        "Delivered" -> {
+                                            ViewCompat.setBackgroundTintList(
+                                                parkReparkBtn,
+                                                ColorStateList.valueOf(grey)
+                                            )
+                                            parkReparkBtn.text = "Park Vehicle"
+                                            parkReparkBtn.isEnabled = false
+                                            Toast.makeText(
+                                                this@ParkReparkActivity,
+                                                "Vehicle already Delivered",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
 
-                                    "Dispatched" -> {
-                                     /*   parkReparkBtn.text = "Repark Vehicle"
-                                        parkReparkBtn.setOnClickListener {
-                                            vehicleInfo.vin?.let { vin ->
-                                                checkVehicleInsideGeofenceRFIDNew(vin, "Re Park")
-                                            }
-                                        }*/
-                                        //Toast.makeText(this@ParkReparkActivity, "Vehicle already Dispatched", Toast.LENGTH_SHORT).show()
-                                        ViewCompat.setBackgroundTintList(
-                                            parkReparkBtn,
-                                            ColorStateList.valueOf(grey)
-                                        )
-                                        parkReparkBtn.text = "Park Vehicle"
-                                        parkReparkBtn.isEnabled = false
-                                        Toast.makeText(
-                                            this@ParkReparkActivity,
-                                            "Vehicle already Dispatched",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        "Dispatched" -> {
+                                            /*   parkReparkBtn.text = "Repark Vehicle"
+                                               parkReparkBtn.setOnClickListener {
+                                                   vehicleInfo.vin?.let { vin ->
+                                                       checkVehicleInsideGeofenceRFIDNew(vin, "Re Park")
+                                                   }
+                                               }*/
+                                            //Toast.makeText(this@ParkReparkActivity, "Vehicle already Dispatched", Toast.LENGTH_SHORT).show()
+                                            ViewCompat.setBackgroundTintList(
+                                                parkReparkBtn,
+                                                ColorStateList.valueOf(grey)
+                                            )
+                                            parkReparkBtn.text = "Park Vehicle"
+                                            parkReparkBtn.isEnabled = false
+                                            Toast.makeText(
+                                                this@ParkReparkActivity,
+                                                "Vehicle already Dispatched",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
 
+                                        }
                                     }
                                 }
                             }
+                            var vehicleInfoMessage =vehicleInfo.message
+                            if(!vehicleInfoMessage.isNullOrEmpty())
+                            {
+                                Toasty.error(
+                                    this@ParkReparkActivity,
+                                   vehicleInfoMessage,
+                                    Toasty.LENGTH_SHORT
+                                ).show()
+                            }
+
+
                         }
 
 
@@ -523,9 +554,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                 getLocationNew()
             }
         }
-
         t.scheduleAtFixedRate(tt, 1000, 1000)
-
     }
 
     private fun getInternalYardLoc() {
@@ -549,7 +578,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         val intent = intent
         val vin = intent.getStringExtra("vin")
         binding.tvBarcode.setText(vin)
-        vin?.let { getVehicleStatus(it) }
+        vin?.let { getPrdOutStatus(it) }
     }
 
     fun getVehicleStatus(scanned: String) {
@@ -569,6 +598,16 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             }
 
         }
+
+    }
+   fun getPrdOutStatus(scanned: String) {
+
+            viewModel.getVehicleStatus(
+                token!!,
+                Constants.BASE_URL,
+                GetVehicleStatusRequest( scanned,"")
+            )
+
 
     }
 
@@ -602,7 +641,6 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                         )
                     )
                 } else {
-
                     viewModel.parkReparkVehicle(
                         token!!,
                         Constants.BASE_URL,
@@ -716,7 +754,13 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                     MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
                         .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
                 currentMarker = map!!.addMarker(markerOptions)
+
                 Log.e(TAG, "Latitude/Longitude - $newLat,$newLng")
+                if(flagCurrentLoc)
+                {
+                    recentr()
+                    flagCurrentLoc=false
+                }
             }
         })
     }
@@ -735,6 +779,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             *//*else {
         }*//*
     }*/
+
     fun updateTvCurrentLoc() {
         if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
             for ((key, value) in locationMap.entries) {
@@ -754,7 +799,22 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         }
         */
     }
-
+    private fun initBarcode(){
+        isRFIDInit = false
+        isBarcodeInit = true
+        //rfidHandler!!.onPause()
+        //rfidHandler!!.onDestroy()
+        Thread.sleep(1000)
+        val results = EMDKManager.getEMDKManager(this@ParkReparkActivity, this)
+        if (results.statusCode != EMDKResults.STATUS_CODE.SUCCESS) {
+            Log.e(TAG, "EMDKManager object request failed!")
+        } else {
+            Log.e(
+                TAG,
+                "EMDKManager object initialization is   in   progress......."
+            )
+        }
+    }
     private fun defaultRFID() {
         isRFIDInit = true
         isBarcodeInit = false
@@ -825,6 +885,8 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
         }
+
+        flagCurrentLoc=true
     }
 
     fun initBarcodeManager() {
@@ -865,7 +927,22 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             scanner = null
         }
     }
+    fun getVehicleStatusBarcode(scanned: String) {
+        if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
+            viewModel.getVehicleStatus(
+                token!!,
+                Constants.BASE_URL,
+                GetVehicleStatusRequest(scanned,"")
+            )
+        } else {
+            Toasty.warning(
+                this@ParkReparkActivity,
+                "You are not inside Service Area!!",
+                Toasty.LENGTH_SHORT
+            ).show()
+        }
 
+    }
 
     override fun onData(scanDataCollection: ScanDataCollection?) {
         var dataStr: String? = ""
@@ -878,7 +955,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             }
             runOnUiThread { binding.tvBarcode.setText(dataStr) }
             // checkVehicleInsideGeofenceBarcode(dataStr.toString())
-
+            dataStr?.let { getVehicleStatusBarcode(it) }
             Log.e(TAG, "Barcode Data : $dataStr")
         }
     }
@@ -888,7 +965,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         var statusStr = ""
         when (state) {
             StatusData.ScannerStates.IDLE -> {
-                statusStr = statusData.friendlyName + " is   enabled and idle..."
+                statusStr = statusData.friendlyName + " is enabled and idle..."
                 setConfig()
                 try {
                     scanner!!.read()
@@ -937,12 +1014,18 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             }
 
             R.id.btnRecenter -> {
-                if (currentMarker != null) currentMarker!!.remove()
-                val currentPos = LatLng(newLat, newLng)
-                map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-                map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
-                println("la-$newLat, $newLng")
+                recentr()
             }
+        }
+    }
+    fun recentr(){
+        if (currentMarker != null) currentMarker!!.remove()
+        val currentPos = LatLng(newLat, newLng)
+        if(currentPos!=null && map!=null)
+        {
+            map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            println("la-$newLat, $newLng")
         }
     }
 
@@ -990,6 +1073,10 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         map = googleMap
         map!!.uiSettings.isMyLocationButtonEnabled = false
         map!!.mapType = GoogleMap.MAP_TYPE_NORMAL
+        runOnUiThread {
+            recentr()
+        }
+
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

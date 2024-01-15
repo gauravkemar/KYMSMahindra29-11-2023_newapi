@@ -14,7 +14,9 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.RelativeLayout
 import android.widget.Toast
+import android.widget.ZoomControls
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -27,6 +29,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.Polygon
 import com.google.android.gms.maps.model.PolygonOptions
 import com.kemarport.kymsmahindra.R
 import com.kemarport.kymsmahindra.databinding.ActivitySetYardGeofenceBinding
@@ -100,6 +103,9 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     private var getParentLocationArray = ArrayList<GetParentLocationsResponse>()
     private var getChildLocationsArray = ArrayList<GetChildLocationsResponse>()
     val defaultCoordinates: ArrayList<LatLng> = ArrayList()
+    private var flagCurrentLoc = true
+
+    private val drawnPolygons: ArrayList<Polygon> = ArrayList()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -149,17 +155,21 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                     response.data?.let { resultResponse ->
                         if (resultResponse.size > 0) {
                             map?.clear()
-                            binding.clSpinnerDealerParentLoc.visibility = View.VISIBLE
+                            binding.clSpinnerInternalParentLoc.visibility = View.VISIBLE
                             for (e in resultResponse) {
-
-                                if (e.coordinates != null ) {
-                                    var coordinates: ArrayList<LatLng> = parseStringToList(e.coordinates)
+                                if (e.coordinates != null) {
+                                    var coordinates: ArrayList<LatLng> =
+                                        parseStringToList(e.coordinates)
                                     if (coordinates.isNotEmpty()) {
                                         Log.d("coordinates", coordinates.toString())
                                         val polygonOptions =
                                             PolygonOptions().addAll(coordinates).clickable(false)
                                                 .strokeColor(
-                                                    ContextCompat.getColor(this, R.color.colorPrimaryLight)).strokeWidth(3f)
+                                                    ContextCompat.getColor(
+                                                        this,
+                                                        R.color.colorPrimaryLight
+                                                    )
+                                                ).strokeWidth(3f)
 
                                         map?.addPolygon(polygonOptions)
                                         if (!parentLocationCoordinatesMap.containsKey(e.value)) {
@@ -182,7 +192,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                             getParentLocationArray.addAll(resultResponse)
                             parentLocatinAdapter?.notifyDataSetChanged()
                         } else {
-                            binding.clSpinnerDealerParentLoc.visibility = View.GONE
+                            binding.clSpinnerInternalParentLoc.visibility = View.GONE
                             binding.clSpinnerDealerChildLocation.visibility = View.GONE
                         }
                     }
@@ -190,10 +200,14 @@ class SetYardGeofenceActivity : AppCompatActivity(),
 
                 is Resource.Error -> {
                     hideProgressBar()
-                    binding.clSpinnerDealerParentLoc.visibility = View.GONE
+                    binding.clSpinnerInternalParentLoc.visibility = View.GONE
                     binding.clSpinnerDealerChildLocation.visibility = View.GONE
                     response.message?.let { resultResponse ->
-                        Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
+                        Toasty.error(
+                            this@SetYardGeofenceActivity,
+                            resultResponse,
+                            Toasty.LENGTH_SHORT
+                        ).show()
                         session.showToastAndHandleErrors(
                             resultResponse,
                             this@SetYardGeofenceActivity
@@ -284,7 +298,12 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                 is Resource.Error -> {
                     hideProgressBar()
                     response.message?.let { resultResponse ->
-                        Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
+
+                        Toasty.error(
+                            this@SetYardGeofenceActivity,
+                            resultResponse,
+                            Toasty.LENGTH_SHORT
+                        ).show()
                         session.showToastAndHandleErrors(
                             resultResponse,
                             this@SetYardGeofenceActivity
@@ -311,7 +330,12 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                 is Resource.Error -> {
                     hideProgressBar()
                     response.message?.let { resultResponse ->
-                        Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
+
+                        Toasty.error(
+                            this@SetYardGeofenceActivity,
+                            resultResponse,
+                            Toasty.LENGTH_SHORT
+                        ).show()
                         session.showToastAndHandleErrors(
                             resultResponse,
                             this@SetYardGeofenceActivity
@@ -335,11 +359,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                 )
         }
         binding.btnRecenter.setOnClickListener {
-            if (currentMarker != null) currentMarker!!.remove()
-            val currentPos = LatLng(newLat, newLng)
-            map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
-            println("la-$newLat, $newLng")
+            recentr()
         }
 
         tt = object : TimerTask() {
@@ -348,6 +368,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
             }
         }
         t.scheduleAtFixedRate(tt, 1000, 1000)
+
         binding.btClear.setOnClickListener {
             setToDefault()
         }
@@ -385,6 +406,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                     val selectedItem = adapterView?.selectedItem.toString()
 
                     val selectedItemPosi = adapterView?.selectedItemPosition
+
                     /*                  val selectedKey: String? =
                                           parentLocationMap.entries.find { it.value == selectedItem }?.key
 
@@ -410,6 +432,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
 
                     if (!isInitialSelectParentLoc) {
                         if (parentLocationArr[i] != "Select Parent Location") {
+                            resetPolygon(selectedItem, parentLocationCoordinatesMap)
                             val selectedKey: String? =
                                 parentLocationMap.entries.find { it.value == selectedItem }?.key
                             callChildLocationApi(selectedKey)
@@ -440,6 +463,8 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                 ) {
                     val selectedItem = adapterView?.selectedItem.toString()
                     val selectedItemPosi = adapterView?.selectedItemPosition
+
+
                     /*    val selectedKey: String? = childLocationMap.entries.find { it.value == selectedItem }?.key
                         callChildLocationApi(selectedKey)
     */
@@ -457,6 +482,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
  */
                     if (!isInitialSelectChildLoc) {
                         if (childLocationArr[i] != "Select Child Location") {
+                            resetPolygon(selectedItem, childLocationCoordinateMap)
                             val selectedKey: String? =
                                 childLocationMap.entries.find { it.value == selectedItem }?.key
                             //callChildLocationApi(selectedKey)
@@ -478,7 +504,12 @@ class SetYardGeofenceActivity : AppCompatActivity(),
 
             viewModel.getAllParentLocations(token!!, Constants.BASE_URL, 0)
         } catch (e: Exception) {
-            Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
+
+            Toasty.error(
+                this@SetYardGeofenceActivity,
+                e.message.toString(),
+                Toasty.LENGTH_SHORT
+            ).show()
         }
 
     }
@@ -488,7 +519,12 @@ class SetYardGeofenceActivity : AppCompatActivity(),
 
             viewModel.getAllChildLocations(token!!, Constants.BASE_URL, selectedKey!!.toInt())
         } catch (e: Exception) {
-            Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
+
+            Toasty.error(
+                this@SetYardGeofenceActivity,
+                e.message.toString(),
+                Toasty.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -514,13 +550,21 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                         )
                     }
             } else {
-                Toast.makeText(this, "Please select DealerId/Parent Location", Toast.LENGTH_SHORT)
-                    .show()
+                Toasty.warning(
+                    this@SetYardGeofenceActivity,
+                    "Please select DealerId/Parent Location",
+                    Toasty.LENGTH_SHORT
+                ).show()
             }
 
 
         } catch (e: Exception) {
             Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
+            Toasty.error(
+                this@SetYardGeofenceActivity,
+                e.message.toString(),
+                Toasty.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -545,9 +589,28 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                     MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
                         .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
                 currentMarker = map?.addMarker(markerOptions)
+
+                binding.addMarker.setOnClickListener {
+                    addMarker(LatLng(gps.getLatitude(), gps.getLongitude()))
+                }
+                if (flagCurrentLoc) {
+                    recentr()
+                    flagCurrentLoc = false
+                }
             }
         })
     }
+
+    fun recentr() {
+        if (currentMarker != null) currentMarker!!.remove()
+        val currentPos = LatLng(newLat, newLng)
+        if (currentPos != null && map != null) {
+            map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            println("laYard-$newLat, $newLng")
+        }
+    }
+
 
     fun generateLocationIcon(): Bitmap? {
         val height = 40
@@ -559,7 +622,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     fun generateSmallIcon(): Bitmap? {
         val height = 20
         val width = 20
-        val bitmap = BitmapFactory.decodeResource(resources, R.drawable.location_marker_green)
+        val bitmap = BitmapFactory.decodeResource(resources, R.drawable.dark_blue_dot)
         return Bitmap.createScaledBitmap(bitmap, width, height, false)
     }
 
@@ -598,6 +661,8 @@ class SetYardGeofenceActivity : AppCompatActivity(),
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
         }
+
+        flagCurrentLoc = true
     }
 
     override fun onLowMemory() {
@@ -637,7 +702,51 @@ class SetYardGeofenceActivity : AppCompatActivity(),
         //map?.mapType = GoogleMap.MAP_TYPE_SATELLITE
         resetMap()
 
-        map?.setOnMapClickListener { latLng: LatLng? -> addMarker(latLng) }
+        map?.setOnMapClickListener { latLng: LatLng? ->
+            if (selectedParentLocationId != 0) {
+                addMarker(latLng)
+                setSingleLine(latLngList)
+                binding.btClearMarker.setOnClickListener {
+                    if (latLngList.isNotEmpty() && markerList.isNotEmpty()) {
+                        latLngList.removeAt(latLngList.size - 1)
+                        val removedMarker = markerList.removeAt(markerList.size - 1)
+                        removedMarker.remove() // Optionally remove the marker from the map
+
+                        // Redraw the lines on the map
+                        setSingleLine(latLngList)
+
+                        // Optionally force a map view update
+                        binding.mapview?.invalidate()
+                    }
+                }
+            } else {
+
+                Toasty.warning(
+                    this@SetYardGeofenceActivity,
+                    "Please Select Location!!",
+                    Toasty.LENGTH_SHORT
+                ).show()
+            }
+        }
+        map?.uiSettings?.isZoomControlsEnabled = true
+        /* binding.btClearMarker.setOnClickListener {
+             if (latLngList.isNotEmpty() && markerList.isNotEmpty()) {
+                 latLngList.removeAt(latLngList.size - 1)
+                 val removedMarker = markerList.removeAt(markerList.size - 1)
+                 removedMarker.remove() // Optionally remove the marker from the map
+                 removeLastLine(latLngList)
+             }
+         }*/
+
+        runOnUiThread {
+            recentr()
+        }
+
+        // Set a listener for zoom events if needed
+        /*map?.setOnCameraIdleListener {
+            val zoomLevel = map?.cameraPosition?.zoom
+            //Toast.makeText(this, "Zoom Level: $zoomLevel", Toast.LENGTH_SHORT).show()
+        }*/
     }
 
     fun resetMap() {
@@ -657,43 +766,148 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     }
 
 
-    private fun resetPolygon(polygonName: String) {
+    private fun resetPolygon(
+        polygonName: String,
+        locationCoordinatesMap: HashMap<String, ArrayList<LatLng>>?
+    ) {
         map?.clear()
-        for ((key, value) in parentLocationCoordinatesMap.entries) {
-            if (polygonName.equals(key, true)) {
-                val polygonOptions =
-                    PolygonOptions().addAll(value).clickable(false)
-                        .strokeColor(
-                            ContextCompat.getColor(
-                                this,
-                                R.color.red
+        markerList.clear()
+        latLngList.clear()
+        if (locationCoordinatesMap != null) {
+            for ((key, value) in locationCoordinatesMap!!.entries) {
+                if (polygonName.equals(key, true)) {
+                    val polygonOptions =
+                        PolygonOptions().addAll(value).clickable(false)
+                            .strokeColor(
+                                ContextCompat.getColor(
+                                    this,
+                                    R.color.red
+                                )
                             )
-                        )
-                        .strokeWidth(3f)
-                map?.addPolygon(polygonOptions)
-            } else if (polygonName.equals("")) {
-                val polygonOptions =
-                    PolygonOptions().addAll(value).clickable(false)
-                        .strokeColor(
-                            ContextCompat.getColor(
-                                this,
-                                R.color.colorPrimaryLight
+                            .strokeWidth(3f)
+                    map?.addPolygon(polygonOptions)
+                } else if (polygonName.equals("")) {
+                    val polygonOptions =
+                        PolygonOptions().addAll(value).clickable(false)
+                            .strokeColor(
+                                ContextCompat.getColor(
+                                    this,
+                                    R.color.colorPrimaryLight
+                                )
                             )
-                        )
-                        .strokeWidth(3f)
-                map?.addPolygon(polygonOptions)
-            } else {
-                val polygonOptions =
-                    PolygonOptions().addAll(value).clickable(false)
-                        .strokeColor(
-                            ContextCompat.getColor(
-                                this,
-                                R.color.grey
+                            .strokeWidth(3f)
+                    map?.addPolygon(polygonOptions)
+                } else {
+                    val polygonOptions =
+                        PolygonOptions().addAll(value).clickable(false)
+                            .strokeColor(
+                                ContextCompat.getColor(
+                                    this,
+                                    R.color.grey
+                                )
                             )
-                        )
-                        .strokeWidth(3f)
+                            .strokeWidth(3f)
+                    map?.addPolygon(polygonOptions)
+                }
+            }
+        }
+
+    }
+    /*    private fun setSingleLine(latLngList: ArrayList<LatLng>) {
+
+            *//* for (i in 0 until latLngList.size) {
+             val polygonOptions = PolygonOptions().clickable(false).strokeWidth(3f)
+
+             if (i == 0) {
+                 // First marker, don't draw anything
+                 continue
+             } else if (i == 1) {
+                 // Second marker, draw a line connecting the first and second markers
+                 polygonOptions.add(latLngList[i - 1], this.latLngList[i])
+                     .strokeColor(ContextCompat.getColor(this, R.color.red))
+             } else {
+                 // Subsequent markers, connect the current marker to the previous two markers
+                 polygonOptions.add(latLngList[i - 2], this.latLngList[i - 1], this.latLngList[i])
+                     .strokeColor(ContextCompat.getColor(this, R.color.colorPrimaryLight))
+             }
+
+             // Add the polygon to the map
+             map?.addPolygon(polygonOptions)
+         }*//*
+        *//*   for (i in 0 until latLngList.size) {
+               val polygonOptions = PolygonOptions().clickable(false).strokeWidth(3f)
+
+               // Connect the current marker to the next one in sequence
+               polygonOptions.add(latLngList[i], latLngList[(i + 1) % latLngList.size])
+
+               // Add the polygon to the map
+               map?.addPolygon(polygonOptions)
+           }*//*
+        for (i in 0 until latLngList.size) {
+            val polygonOptions = PolygonOptions().clickable(false).strokeWidth(3f)
+
+            // Draw a line only if there are at least two markers
+            if (i > 0) {
+                // Connect the current marker to the previous one
+                polygonOptions.add(latLngList[i - 1], latLngList[i])
+
+                // Add the polygon to the map
                 map?.addPolygon(polygonOptions)
             }
         }
+    }
+    private fun removeLastLine(latLngList: ArrayList<LatLng>) {
+        // Remove the last element from the list
+        if (latLngList.size > 0) {
+            latLngList.removeAt(latLngList.size - 1)
+        }
+
+        // Redraw the lines on the map
+        setSingleLine(latLngList)
+    }*/
+
+    private fun setSingleLine(latLngList: ArrayList<LatLng>) {
+        // Remove previously drawn polygons
+        removeDrawnPolygons()
+
+        for (i in 0 until latLngList.size) {
+            val polygonOptions = PolygonOptions().clickable(false).strokeWidth(3f)
+
+            // Draw a line only if there are at least two markers
+            if (i > 0) {
+                // Connect the current marker to the previous one
+                polygonOptions.add(latLngList[i - 1], latLngList[i])
+
+                // Add the polygon to the map
+                val polygon = map?.addPolygon(polygonOptions)
+                polygon?.let {
+                    drawnPolygons.add(it)
+                }
+            }
+        }
+    }
+
+    private fun removeLastLine(latLngList: ArrayList<LatLng>) {
+        // Remove the last element from the list
+        if (latLngList.size > 0) {
+            latLngList.removeAt(latLngList.size - 1)
+
+            // Remove the last drawn polygon
+            removeLastDrawnPolygon()
+        }
+    }
+
+    private fun removeLastDrawnPolygon() {
+        if (drawnPolygons.isNotEmpty()) {
+            val lastPolygon = drawnPolygons.removeAt(drawnPolygons.size - 1)
+            lastPolygon.remove()
+        }
+    }
+
+    private fun removeDrawnPolygons() {
+        for (polygon in drawnPolygons) {
+            polygon.remove()
+        }
+        drawnPolygons.clear()
     }
 }

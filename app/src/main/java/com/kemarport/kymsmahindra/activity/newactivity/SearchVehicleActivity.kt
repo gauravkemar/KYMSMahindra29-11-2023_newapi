@@ -125,18 +125,21 @@ class SearchVehicleActivity : AppCompatActivity() {
         }
 
 
-        viewModel.getVehicleModelsMutable .observe(this) { response ->
+        viewModel.getVehicleModelsMutable.observe(this) { response ->
             when (response) {
                 is Resource.Success -> {
                     hideProgressBar()
                     modelCodeList.clear()
                     response.data?.let { resultResponse ->
                         try {
-                            if(resultResponse.size>0)
-                            {
+                            if(resultResponse.size > 0) {
                                 modelCodeList.add("Select Code")
-                                for(modelCode in resultResponse )
-                                modelCodeList.add(modelCode.model)
+                                for (modelCode in resultResponse) {
+                                    modelCodeList.add(modelCode.model)
+                                }
+                                val sortedModelCodeList = modelCodeList.subList(1, modelCodeList.size).sorted()
+                                modelCodeList.clear()
+                                modelCodeList.addAll(listOf("Select Code") + sortedModelCodeList)
                             }
 
                             loadModelCodeSpinner(modelCodeList)
@@ -171,18 +174,22 @@ class SearchVehicleActivity : AppCompatActivity() {
                 }
             }
         }
-        viewModel.getVehicleColorsMutable .observe(this) { response ->
+
+        viewModel.getVehicleColorsMutable.observe(this) { response ->
             when (response) {
                 is Resource.Success -> {
                     hideProgressBar()
                     colorsList.clear()
                     response.data?.let { resultResponse ->
                         try {
-                            if(resultResponse.size>0)
-                            {
+                            if(resultResponse.size > 0) {
                                 colorsList.add("Select Color")
-                                for(modelCode in resultResponse )
+                                for (modelCode in resultResponse) {
                                     colorsList.add(modelCode.color)
+                                }
+                                val sortedColorsList = colorsList.subList(1, colorsList.size).sorted()
+                                colorsList.clear()
+                                colorsList.addAll(listOf("Select Color") + sortedColorsList)
                             }
                             loadModelColorSpinner(colorsList)
                         } catch (e: Exception) {
@@ -274,16 +281,16 @@ class SearchVehicleActivity : AppCompatActivity() {
             selectedModelCode=""
         }
     }
-    private fun loadModelCodeSpinner(arr:  ArrayList<String>) {
+    private fun loadModelCodeSpinner(arr: List<String>) {
 
         val spinner = findViewById<Spinner>(R.id.spinnerModel)
 
         if (spinner != null) {
             val adapter = ArrayAdapter(
                 this,
-                android.R.layout.simple_spinner_item, arr
+                R.layout.spinner_item, arr
             )
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            adapter.setDropDownViewResource(  R.layout.spinner_item)
 
             spinner.adapter = adapter
 
@@ -313,7 +320,7 @@ class SearchVehicleActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadModelColorSpinner(arr:  ArrayList<String>) {
+    private fun loadModelColorSpinner(arr: List<String>) {
 
 
         val spinner = findViewById<Spinner>(R.id.spinnerColor)
@@ -322,9 +329,9 @@ class SearchVehicleActivity : AppCompatActivity() {
 
             val adapter = ArrayAdapter(
                 this,
-                android.R.layout.simple_spinner_item, arr
+                R.layout.spinner_item, arr
             )
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            adapter.setDropDownViewResource(  R.layout.spinner_item)
 
             spinner.adapter = adapter
 

@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Mahindra Yard</string>
+    <string name="app_name">Kemar Yard</string>
     <string name="powered_by_splash_txt">Powered by <b>Kemar Port Automation Pvt Ltd</b></string>
 
     <string name="note"><b>Note :</b> Press the yellow button on the side to scan barcode, Press clear button to clear barcode.</string>
-    <string name="note_prd"><b>Note :</b> Press the yellow button to Park-IN</string>
+    <string name="note_prd"><b>Note :</b> Press the list item to Park-IN</string>
     <string name="vin_exist"><center>VIN already exists!!</center>\n<center>Please Try with different VIN</center></string>
 
     <string name="log_in">LogIn</string>

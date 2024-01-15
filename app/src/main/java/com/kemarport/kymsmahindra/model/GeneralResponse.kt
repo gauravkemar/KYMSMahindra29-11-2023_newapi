@@ -6,4 +6,6 @@ class GeneralResponse (
     val errorMessage: String?,
     val exception: String?,
     val responseMessage: String?,
+    val status: String?,
+    val message: String?,
 )

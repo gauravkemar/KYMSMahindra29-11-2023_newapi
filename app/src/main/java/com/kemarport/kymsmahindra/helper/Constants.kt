@@ -92,7 +92,8 @@ object Constants {
 
 
     const val LOCATION_ID = "locationId"
-    //const val BASE_URL = "http://192.168.1.205:8011/Service/api/"
+    //const val BASE_URL = "http://192.168.1.52:5000/api/"
     const val BASE_URL = "http://103.240.90.141:5050/Service/api/"
+    //const val BASE_URL = "http://rfid-yard-lb-1652367993.ap-south-1.elb.amazonaws.com:82/api/"
 
 }

@@ -218,6 +218,7 @@
                             android:background="@android:color/darker_gray" />
                         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                             android:layout_width="match_parent"
+                            android:visibility="gone"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal">
 
@@ -257,6 +258,7 @@
                             android:id="@+id/row_divider5"
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
+                            android:visibility="gone"
                             android:background="@android:color/darker_gray" />
                         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                             android:layout_width="match_parent"
@@ -315,19 +317,53 @@
 
 
             <FrameLayout
-                android:layout_marginTop="20dp"
-                android:background="@drawable/frame_bg"
+                android:layout_margin="@dimen/dimen_10"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
 
-                <androidx.appcompat.widget.AppCompatImageView
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/iv_Navigate"
                     android:layout_gravity="center"
+                    app:cardBackgroundColor="@color/secondaryDarkColor"
                     android:padding="10dp"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@drawable/ic_navigation" />
+                     >
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        >
+                        <TextView
+                            android:id="@+id/tvNavigateVehicle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Navigate"
+                            android:textAllCaps="true"
+                            android:padding="10dp"
+                            android:textAlignment="center"
+                            android:textSize="@dimen/tv_size_14"
+                            android:textColor="@color/white"
+                            app:layout_constraintHorizontal_chainStyle="packed"
+
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toStartOf="@+id/imNavigate"
+                            />
+                        <ImageView
+                            android:id="@+id/imNavigate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:padding="10dp"
+                            android:src="@drawable/ic_navigation"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toEndOf="@+id/tvNavigateVehicle"/>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </com.google.android.material.card.MaterialCardView>
+
 
             </FrameLayout>
 

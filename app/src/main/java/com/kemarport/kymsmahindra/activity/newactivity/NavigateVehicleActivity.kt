@@ -20,6 +20,7 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
@@ -55,6 +56,7 @@ class NavigateVehicleActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_navigate)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.searchVehicleToolbar.title = "Navigate"
         binding.searchVehicleToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white))
         setSupportActionBar(binding.searchVehicleToolbar)
@@ -396,7 +398,6 @@ class NavigateVehicleActivity : AppCompatActivity(), OnMapReadyCallback {
                         toneGen1?.startTone(ToneGenerator.TONE_PROP_BEEP2, 100)
                         handler.postDelayed(this, delay)
                     }
-
                 }
             }, 0)
         } else {
