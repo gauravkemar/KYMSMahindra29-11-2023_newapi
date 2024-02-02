@@ -2,7 +2,12 @@ package com.kemarport.kymsmahindra.activity.newactivity
 
 
 import android.app.ProgressDialog
+import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -23,8 +28,11 @@ import com.kemarport.kymsmahindra.R
 import com.kemarport.kymsmahindra.adapter.SearchVehicleAdapter
 import com.kemarport.kymsmahindra.databinding.ActivitySearchVehicleBinding
 import com.kemarport.kymsmahindra.helper.Constants
+import com.kemarport.kymsmahindra.helper.Constants.ColorCode
 import com.kemarport.kymsmahindra.helper.Constants.LATITUDE
 import com.kemarport.kymsmahindra.helper.Constants.LONGITUDE
+import com.kemarport.kymsmahindra.helper.Constants.ModelCode
+import com.kemarport.kymsmahindra.helper.Constants.VinNo
 import com.kemarport.kymsmahindra.helper.Resource
 import com.kemarport.kymsmahindra.helper.SessionManager
 import com.kemarport.kymsmahindra.model.newapi.searchvehicles.GetSearchVehiclesListResponse
@@ -35,7 +43,7 @@ import es.dmoral.toasty.Toasty
 import java.util.HashMap
 import kotlin.collections.ArrayList
 
-class SearchVehicleActivity : AppCompatActivity() {
+class SearchVehicleActivity : AppCompatActivity()  {
     lateinit var listItems: ArrayList<GetSearchVehiclesListResponse>
     lateinit var colorsList: ArrayList<String>
     lateinit var modelCodeList: ArrayList<String>
@@ -53,6 +61,9 @@ class SearchVehicleActivity : AppCompatActivity() {
     private var isIntialSelectionColor = true
     private var isInitialSelectionModel = true
     private lateinit var userDetails: HashMap<String, String?>
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
@@ -108,14 +119,7 @@ class SearchVehicleActivity : AppCompatActivity() {
                             this@SearchVehicleActivity,
                             "Error Message: $errorMessage"
                         ).show()
-                        if (errorMessage == "Unauthorized" || errorMessage == "Authentication token expired" ||
-                            errorMessage == Constants.CONFIG_ERROR) {
-                            session.showCustomDialog(
-                                "Session Expired",
-                                "Please re-login to continue",
-                                this@SearchVehicleActivity
-                            )
-                        }
+                        session.showToastAndHandleErrors(errorMessage, this@SearchVehicleActivity)
                     }
                 }
                 is Resource.Loading -> {
@@ -159,14 +163,7 @@ class SearchVehicleActivity : AppCompatActivity() {
                             this@SearchVehicleActivity,
                             "Error Message: $errorMessage"
                         ).show()
-                        if (errorMessage == "Unauthorized" || errorMessage == "Authentication token expired" ||
-                            errorMessage == Constants.CONFIG_ERROR) {
-                            session.showCustomDialog(
-                                "Session Expired",
-                                "Please re-login to continue",
-                                this@SearchVehicleActivity
-                            )
-                        }
+                        session.showToastAndHandleErrors(errorMessage, this@SearchVehicleActivity)
                     }
                 }
                 is Resource.Loading -> {
@@ -208,14 +205,7 @@ class SearchVehicleActivity : AppCompatActivity() {
                             this@SearchVehicleActivity,
                             "Error Message: $errorMessage"
                         ).show()
-                        if (errorMessage == "Unauthorized" || errorMessage == "Authentication token expired" ||
-                            errorMessage == Constants.CONFIG_ERROR) {
-                            session.showCustomDialog(
-                                "Session Expired",
-                                "Please re-login to continue",
-                                this@SearchVehicleActivity
-                            )
-                        }
+                        session.showToastAndHandleErrors(errorMessage, this@SearchVehicleActivity)
                     }
                 }
                 is Resource.Loading -> {
@@ -280,6 +270,7 @@ class SearchVehicleActivity : AppCompatActivity() {
             selectedColor=""
             selectedModelCode=""
         }
+
     }
     private fun loadModelCodeSpinner(arr: List<String>) {
 
@@ -321,12 +312,8 @@ class SearchVehicleActivity : AppCompatActivity() {
     }
 
     private fun loadModelColorSpinner(arr: List<String>) {
-
-
         val spinner = findViewById<Spinner>(R.id.spinnerColor)
-
         if (spinner != null) {
-
             val adapter = ArrayAdapter(
                 this,
                 R.layout.spinner_item, arr
@@ -349,22 +336,29 @@ class SearchVehicleActivity : AppCompatActivity() {
                             searchVehicleDetails(selectedModelCode,selectedColor)
                         }
                     }
-
                     isIntialSelectionColor = false
                 }
-
                 override fun onNothingSelected(parent: AdapterView<*>) {
                     selectedColor = arr[0]
                 }
-
             }
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        binding.etSearch.setText("")
 
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        binding.etSearch.setText("")
+    }
     override fun onResume() {
         super.onResume()
         searchVehicleDetails("","")
+
     }
     private fun searchVehicleDetails(model:String?,color:String){
         try {
@@ -422,7 +416,7 @@ class SearchVehicleActivity : AppCompatActivity() {
             startActivity(
                 Intent(
                     this@SearchVehicleActivity,
-                    NavigateVehicleActivity::class.java
+                    NavigateVehicleRefactored::class.java
                 ).apply {
              /*       it.coordinates?.let { it1 -> Utils.parseString(it1) }?.get(0)
                         ?.let { it1 -> putExtra(LATITUDE, it1.latitude) }
@@ -430,9 +424,12 @@ class SearchVehicleActivity : AppCompatActivity() {
                         ?.let { it1 -> putExtra(LONGITUDE, it1.longitude) }*/
                     val (latitude: Double?, longitude) = it.coordinates?.split(",")!!.map { it.toDoubleOrNull() }
                     if (latitude != null && longitude != null) {
-                        val intent = Intent(this@SearchVehicleActivity, NavigateVehicleActivity::class.java)
+                        val intent = Intent(this@SearchVehicleActivity, NavigateVehicleRefactored::class.java)
                         intent.putExtra(LATITUDE, latitude)
                         intent.putExtra(LONGITUDE, longitude)
+                        intent.putExtra(ModelCode, it.modelCode)
+                        intent.putExtra(ColorCode, it.colorDescription)
+                        intent.putExtra(VinNo, it.vin)
                         startActivity(intent)
                     } else {
                         // Handle invalid coordinates here if needed.

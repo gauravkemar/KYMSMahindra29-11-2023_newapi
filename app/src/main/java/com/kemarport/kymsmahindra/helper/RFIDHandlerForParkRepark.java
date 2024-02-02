@@ -5,6 +5,9 @@ import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
+
 import com.kemarport.kymsmahindra.activity.newactivity.ParkReparkActivity;
 import com.zebra.rfid.api3.ACCESS_OPERATION_CODE;
 import com.zebra.rfid.api3.ACCESS_OPERATION_STATUS;
@@ -49,7 +52,9 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
     private int MAX_POWER = 270;
     private int POWER_REQUIRED = 130;
     // In case of RFD8500 change reader name with intended device below from list of paired RFD8500
-    String readername = "RFD8500123";
+    //String readername = "RFD8500123";
+     //String readername = "RFD8500123";
+    String readername = "RFD4031-G10B700-IN";
 
     public void init(ParkReparkActivity activity) {
         // application context
@@ -178,7 +183,11 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
             // Based on support available on host device choose the reader type
             InvalidUsageException invalidUsageException = null;
             readers = new Readers(context, ENUM_TRANSPORT.ALL);
-            availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
+            try {
+                availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
+            } catch (InvalidUsageException e) {
+                throw new RuntimeException(e);
+            }
             if (invalidUsageException != null) {
                 readers.Dispose();
                 readers = null;
@@ -197,10 +206,15 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
     }
 
     private class ConnectionTask extends AsyncTask<Void, Void, String> {
+        @NonNull
         @Override
         protected String doInBackground(Void... voids) {
             Log.d(TAG, "ConnectionTask");
-            GetAvailableReader();
+            try {
+                GetAvailableReader();
+            } catch (InvalidUsageException e) {
+                throw new RuntimeException(e);
+            }
             if (reader != null)
                 return connect();
             return "Failed to find or connect reader";
@@ -214,7 +228,7 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
         }
     }
 
-    private synchronized void GetAvailableReader() {
+    private synchronized void GetAvailableReader() throws InvalidUsageException {
         Log.d(TAG, "GetAvailableReader");
         if (readers != null) {
             readers.attach(this);

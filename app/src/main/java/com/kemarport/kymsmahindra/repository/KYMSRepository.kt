@@ -1,6 +1,7 @@
 package com.kemarport.kymsmahindra.repository
 
 import com.kemarport.kymsmahindra.helper.Constants
+import com.kemarport.kymsmahindra.model.changepassword.ChangePasswordRequest
 import com.kemarport.kymsmahindra.model.login.LoginRequest
 import com.kemarport.kymsmahindra.model.newapi.parkrepark.GetVehicleStatusRequest
 import com.kemarport.kymsmahindra.model.newapi.parkrepark.PostVehicleMovementRequest
@@ -97,4 +98,10 @@ class KYMSRepository {
         baseUrl: String,
         @Query("userName")  userName: String?
     ) = RetrofitInstance.api(baseUrl).getMyTransactions(bearerToken,userName)
+
+    suspend fun changePassword(
+        token:String,
+        baseUrl: String,
+        changePasswordRequest: ChangePasswordRequest
+    ) = RetrofitInstance.api(baseUrl).changePassword(token,changePasswordRequest)
 }

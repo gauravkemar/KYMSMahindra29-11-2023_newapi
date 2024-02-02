@@ -1,7 +1,7 @@
 package com.kemarport.kymsmahindra.model.newapi.parkrepark
 
 data class GetAllYardLocationsResponseItem(
-    val coordinates: String,
+    val coordinates: String?,
     val createdBy: String,
     val createdDate: String,
     val dealerId: Int,

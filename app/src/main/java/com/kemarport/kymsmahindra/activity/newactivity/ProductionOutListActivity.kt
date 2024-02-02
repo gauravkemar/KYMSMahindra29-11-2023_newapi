@@ -100,6 +100,11 @@ class ProductionOutListActivity : AppCompatActivity() {
            binding.etSearch.setText("")
        }
     }
+
+    override fun onResume() {
+        super.onResume()
+        callApi()
+    }
     private fun filterItems(search: String)
     {
         prdOutListResponse?.let{

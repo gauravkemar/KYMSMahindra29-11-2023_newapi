@@ -33,7 +33,7 @@ class VehicleDetailsScreen : AppCompatActivity() {
             startActivity(
                 Intent(
                     this@VehicleDetailsScreen,
-                    NavigateVehicleActivity::class.java
+                    NavigateVehicleRefactored::class.java
                 ).apply {
                     previousScreenDataModel.run {
                      /*   this?.coordinates?.let { it1 -> Utils.parseString(it1) }?.get(0)
@@ -43,9 +43,12 @@ class VehicleDetailsScreen : AppCompatActivity() {
 
                         val (latitude: Double?, longitude) = this?.coordinates?.split(",")!!.map { it.toDoubleOrNull() }
                         if (latitude != null && longitude != null) {
-                            val intent = Intent(this@VehicleDetailsScreen, NavigateVehicleActivity::class.java)
+                            val intent = Intent(this@VehicleDetailsScreen, NavigateVehicleRefactored::class.java)
                             intent.putExtra(Constants.LATITUDE, latitude)
                             intent.putExtra(Constants.LONGITUDE, longitude)
+                            intent.putExtra(Constants.ModelCode, previousScreenDataModel?.modelCode)
+                            intent.putExtra(Constants.ColorCode, previousScreenDataModel?.colorDescription)
+                            intent.putExtra(Constants.VinNo, previousScreenDataModel?.vin)
                             startActivity(intent)
                         } else {
                             // Handle invalid coordinates here if needed.

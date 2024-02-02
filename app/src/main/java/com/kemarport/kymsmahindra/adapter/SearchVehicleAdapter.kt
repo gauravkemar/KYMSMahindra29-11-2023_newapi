@@ -111,11 +111,11 @@ class SearchVehicleAdapter(
                 }
             }
 
-            ivCarImg.setOnClickListener {
+          /*  ivCarImg.setOnClickListener {
                 var intent= Intent(context, DispatchVehicleActivity::class.java)
                 intent.putExtra("vin",getSearchVehicleListResponse.vin)
                 context?.startActivity(intent)
-            }
+            }*/
 
         }
 
@@ -149,26 +149,26 @@ class SearchVehicleAdapter(
 
     private fun getModelColorResourceId(modelCode: String, colorDescription: String): Int {
         val modelColorMap = mapOf(
-            "XUV 300" to mapOf(
+            "XUV300" to mapOf(
                 "Red" to R.drawable.xuv300red,
                 "Black" to R.drawable.xuv300black,
                 "White" to R.drawable.xuv300white,
                 "Blue" to R.drawable.xuv300blue
             ),
-            "XUV 500" to mapOf(
+            "XUV500" to mapOf(
                 "Red" to R.drawable.xuv500red,
                 "Black" to R.drawable.xuv500black,
                 "White" to R.drawable.xuv500white,
                 "Blue" to R.drawable.xuv500blue
             ),
-            "XUV 700" to mapOf(
+            "XUV700" to mapOf(
                 "Red" to R.drawable.xuv700red,
                 "Black" to R.drawable.xuv700black,
                 "White" to R.drawable.xuv700white,
                 "Blue" to R.drawable.xuv700blue
             )
         )
-        return modelColorMap[modelCode]?.get(colorDescription) ?: R.drawable.ic_car
+        return modelColorMap[modelCode]?.get(colorDescription) ?: R.drawable.car_image_icon_rbg
     }
 
     fun formatDate(inputDateStr: String, outputFormatStr: String): String {

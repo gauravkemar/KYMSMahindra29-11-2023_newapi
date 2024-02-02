@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.provider.Settings
 import android.text.Html
 import androidx.appcompat.app.AlertDialog
 import com.kemarport.kymsmahindra.activity.newactivity.LoginActivity
@@ -178,7 +179,8 @@ class SessionManager(context: Context) {
         logoutUser()
         val intent = Intent(context, LoginActivity::class.java)
         context.startActivity(intent)
-        context.finish()
+        //context.finish()
+        context.finishAfterTransition()
     }
 
     companion object {
@@ -207,7 +209,7 @@ class SessionManager(context: Context) {
     fun showToastAndHandleErrors(resultResponse: String,context: Activity) {
 
         when (resultResponse) {
-            "Session Expired ! Please relogin", "Authentication token expired", Constants.CONFIG_ERROR -> {
+            Constants.SESSION_EXPIRE, "Authentication token expired", Constants.CONFIG_ERROR -> {
                 showCustomDialog(
                     "Session Expired",
                     "Please re-login to continue",
@@ -215,6 +217,23 @@ class SessionManager(context: Context) {
                 )
             }
         }
+    }
+    fun showAlertMessage(context: Activity) {
+        val builder = android.app.AlertDialog.Builder(context)
+        builder.setMessage("The location permission is disabled. Do you want to enable it?")
+            .setCancelable(false)
+            .setPositiveButton("Yes") { _, _ ->
+                context.startActivityForResult(
+                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS),
+                    10
+                )
+            }
+            .setNegativeButton("No") { dialog, _ ->
+                dialog.cancel()
+                context.finish()
+            }
+        val alert: android.app.AlertDialog = builder.create()
+        alert.show()
     }
 }
 

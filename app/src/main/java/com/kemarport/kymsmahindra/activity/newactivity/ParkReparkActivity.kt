@@ -9,9 +9,11 @@ import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.location.Location
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.util.AttributeSet
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MenuItem
@@ -24,6 +26,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -57,8 +65,6 @@ import com.symbol.emdk.barcode.ScannerResults
 import com.symbol.emdk.barcode.StatusData
 import com.zebra.rfid.api3.TagData
 import es.dmoral.toasty.Toasty
-import java.util.Timer
-import java.util.TimerTask
 
 class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
     RFIDHandlerForParkRepark.ResponseHandlerInterface,
@@ -76,8 +82,8 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
     var newLat = 0.0
     var newLng = 0.0
 
-    var t = Timer()
-    var tt: TimerTask? = null
+    //var t = Timer()
+    //var tt: TimerTask? = null
     private lateinit var viewModel: ParkReparkViewModel
 
     private lateinit var session: SessionManager
@@ -110,12 +116,14 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         if (isBarcodeInit) {
             deInitScanner()
         }
-        if (t != null) {
+        stopLocationUpdates()
+       /* if (t != null) {
             t.cancel()
             tt!!.cancel()
-        }
+        }*/
         resumeFlag = true
     }
+
 
     override fun onPostResume() {
         super.onPostResume()
@@ -141,6 +149,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         if (isBarcodeInit) {
             deInitScanner()
         }
+        stopLocationUpdates()
     }
 
     fun performInventory() {
@@ -158,6 +167,10 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
     private var currentLongitude: Double = 0.0
     val locationMap = HashMap<String, ArrayList<LatLng>>()
     private var flagCurrentLoc=true
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_park_repark)
@@ -175,7 +188,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         Toasty.Config.getInstance()
             .setGravity(Gravity.CENTER)
             .apply()
-
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         val kymsRepository = KYMSRepository()
         val viewModelProviderFactory =
             ParkReparkViewModelFactory(application, kymsRepository)
@@ -202,11 +215,13 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             binding.scanBarcode.visibility = View.GONE
             //binding.radioGroup.visibility = View.VISIBLE
             defaultRFID()
-            //initBarcode()
+           // initBarcode()
         } else {
             binding.scanBarcode.visibility = View.VISIBLE
             // binding.radioGroup.visibility = View.GONE
         }
+        requestLocationEnable()
+        requestLocation()
         defaultVinApiCall()
         getInternalYardLoc()
         /*binding.radioGroup.setOnCheckedChangeListener { buttonView, selected ->
@@ -236,7 +251,6 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             }
         }*/
 
-
         viewModel.getAllInternalYardMutable.observe(this)
         { response ->
             when (response) {
@@ -249,9 +263,9 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
 
                             for (e in resultResponse) {
                                 if (e.locationType.equals("Internal")) {
-                                    if (e.coordinates != null) {
+                                    if (e.coordinates != null ) {
                                         var coordinates: ArrayList<LatLng> =
-                                            parseStringToList(e.coordinates)
+                                            parseStringToList(e.coordinates!!)
                                         if (!coordinatesMap.containsKey(e.locationId.toString())) {
                                             coordinatesMap[e.locationId.toString()] = coordinates
                                         }
@@ -283,15 +297,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                     hideProgressBar()
                     response.message?.let { resultResponse ->
                         Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
-                        if (resultResponse == "Unauthorized" || resultResponse == "Authentication token expired" ||
-                            resultResponse == Constants.CONFIG_ERROR
-                        ) {
-                            session.showCustomDialog(
-                                "Session Expired",
-                                "Please re-login to continue",
-                                this@ParkReparkActivity
-                            )
-                        }
+                        session.showToastAndHandleErrors(resultResponse, this@ParkReparkActivity)
                     }
                 }
 
@@ -549,12 +555,12 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             }
         }
 
-        tt = object : TimerTask() {
+     /*   tt = object : TimerTask() {
             override fun run() {
                 getLocationNew()
             }
         }
-        t.scheduleAtFixedRate(tt, 1000, 1000)
+        t.scheduleAtFixedRate(tt, 1000, 1000)*/
     }
 
     private fun getInternalYardLoc() {
@@ -574,6 +580,81 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
        }
     }
 
+    private fun requestLocation() {
+/*        val locationRequest = LocationRequest.create()
+        locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+        locationRequest.interval = 2000 //4 seconds*/
+
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(true)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+     /*   fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            object : com.google.android.gms.location.LocationCallback() {
+                override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
+                    val location = locationResult.lastLocation
+                    // Handle the location update here
+                    if (location != null) {
+                        //Log.e("fromfused",location.toString())
+                        Log.e("currentLocNewFusedGPS",location.toString())
+                        updateLocation(location)
+                    }
+                }
+            },
+            null
+        )*/
+    }
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val location = locationResult.lastLocation
+            if (location != null) {
+                Log.e("currentLocNewFusedGPS", location.toString())
+               // Toast.makeText(this@ParkReparkActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
+                updateLocation(location)
+            }
+        }
+    }
+    private fun updateLocation(location: Location) {
+
+        runOnUiThread(Runnable {
+
+            newLat = location.latitude
+            newLng = location.longitude
+            currentLatitude = location.latitude
+            currentLongitude = location.longitude
+            if (currentMarker != null) currentMarker!!.remove()
+            updateTvCurrentLoc()
+            val markerOptions =
+                MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
+                    .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
+            currentMarker = map!!.addMarker(markerOptions)
+
+            Log.e(TAG, "Latitude/Longitude - $newLat,$newLng")
+            if(flagCurrentLoc)
+            {
+                recentr()
+                flagCurrentLoc=false
+            }
+
+
+
+        })
+
+    }
     private fun defaultVinApiCall(){
         val intent = intent
         val vin = intent.getStringExtra("vin")
@@ -596,19 +677,14 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                     Toasty.LENGTH_SHORT
                 ).show()
             }
-
         }
-
     }
    fun getPrdOutStatus(scanned: String) {
-
             viewModel.getVehicleStatus(
                 token!!,
                 Constants.BASE_URL,
                 GetVehicleStatusRequest( scanned,"")
             )
-
-
     }
 
     private fun clear() {
@@ -765,6 +841,12 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         })
     }
 
+    private fun requestLocationEnable() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            session.showAlertMessage(this@ParkReparkActivity)
+        }
+    }
     /*    fun updateTvCurrentLoc( ) {
             if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
                 for ((key, value) in locationMap.entries) {
@@ -837,7 +919,6 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             var tagDataFromScan = tagData[0].tagID
             binding.tvBarcode.setText(tagDataFromScan)
             Log.e(TAG, "RFID Data : $tagDataFromScan")
-
             stopInventory()
         }
         //checkVehicleInsideGeofenceRFID(tagData[0].tagID.toString())
@@ -848,7 +929,6 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         if (pressed) {
             performInventory()
         } else stopInventory()
-
     }
 
     override fun onOpened(emdkManager: EMDKManager?) {
@@ -876,7 +956,23 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                 initScanner()
             }
         }
-        if (t == null) {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(false)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+/*        if (t == null) {
             t = Timer()
             tt = object : TimerTask() {
                 override fun run() {
@@ -884,11 +980,13 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                 }
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
-        }
+        }*/
 
         flagCurrentLoc=true
     }
-
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
     fun initBarcodeManager() {
         barcodeManager =
             emdkManager!!.getInstance(EMDKManager.FEATURE_TYPE.BARCODE) as BarcodeManager
@@ -927,6 +1025,12 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             scanner = null
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        stopLocationUpdates()
+    }
+
     fun getVehicleStatusBarcode(scanned: String) {
         if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
             viewModel.getVehicleStatus(
@@ -943,7 +1047,6 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         }
 
     }
-
     override fun onData(scanDataCollection: ScanDataCollection?) {
         var dataStr: String? = ""
         if (scanDataCollection != null && scanDataCollection.result == ScannerResults.SUCCESS) {
@@ -972,10 +1075,8 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                 } catch (e: ScannerException) {
                 }
             }
-
             StatusData.ScannerStates.WAITING -> statusStr =
                 "Scanner is waiting for trigger press..."
-
             StatusData.ScannerStates.SCANNING -> statusStr = "Scanning..."
             StatusData.ScannerStates.DISABLED -> {}
             StatusData.ScannerStates.ERROR -> statusStr = "An error has occurred."
@@ -1008,11 +1109,9 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                 val intent = Intent(this, ScanBarcodeActivity::class.java)
                 startActivityForResult(intent, REQUEST_CODE)
             }
-
             R.id.btnClear -> {
                clear()
             }
-
             R.id.btnRecenter -> {
                 recentr()
             }
@@ -1024,7 +1123,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         if(currentPos!=null && map!=null)
         {
             map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(25f))
             println("la-$newLat, $newLng")
         }
     }

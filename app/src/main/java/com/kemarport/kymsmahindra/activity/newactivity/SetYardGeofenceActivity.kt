@@ -6,8 +6,10 @@ import android.app.ProgressDialog
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Location
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MenuItem
@@ -22,6 +24,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -65,8 +73,8 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     var newLat = 0.0
     var newLng = 0.0
 
-    var t = Timer()
-    var tt: TimerTask? = null
+ /*   var t = Timer()
+    var tt: TimerTask? = null*/
 
     var latLngList: ArrayList<LatLng> = ArrayList()
     var markerList: ArrayList<Marker> = ArrayList()
@@ -106,6 +114,8 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     private var flagCurrentLoc = true
 
     private val drawnPolygons: ArrayList<Polygon> = ArrayList()
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -119,6 +129,8 @@ class SetYardGeofenceActivity : AppCompatActivity(),
         binding.setGeofenceToolbar.title = "Set Yard Geofence"
         binding.setGeofenceToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white))
         setSupportActionBar(binding.setGeofenceToolbar)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        requestLocation()
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
@@ -362,19 +374,88 @@ class SetYardGeofenceActivity : AppCompatActivity(),
             recentr()
         }
 
-        tt = object : TimerTask() {
+/*        tt = object : TimerTask() {
             override fun run() {
                 getLocationNew()
             }
         }
-        t.scheduleAtFixedRate(tt, 1000, 1000)
+        t.scheduleAtFixedRate(tt, 1000, 1000)*/
 
         binding.btClear.setOnClickListener {
             setToDefault()
         }
 
     }
+    private fun requestLocation() {
+        /*        val locationRequest = LocationRequest.create()
+                locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+                locationRequest.interval = 2000 //4 seconds*/
 
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(true)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        /*   fusedLocationClient.requestLocationUpdates(
+               locationRequest,
+               object : com.google.android.gms.location.LocationCallback() {
+                   override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
+                       val location = locationResult.lastLocation
+                       // Handle the location update here
+                       if (location != null) {
+                           //Log.e("fromfused",location.toString())
+                           Log.e("currentLocNewFusedGPS",location.toString())
+                           updateLocation(location)
+                       }
+                   }
+               },
+               null
+           )*/
+    }
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val location = locationResult.lastLocation
+            if (location != null) {
+                Log.e("currentLocNewFusedGPS", location.toString())
+                // Toast.makeText(this@ParkReparkActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
+                updateLocation(location)
+            }
+        }
+    }
+
+    private fun updateLocation(location: Location) {
+        newLat = location.latitude
+        newLng = location.longitude
+        if (currentMarker != null) currentMarker!!.remove()
+        val markerOptions =
+            MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
+                .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
+        currentMarker = map?.addMarker(markerOptions)
+
+        binding.addMarker.setOnClickListener {
+            addMarker(LatLng(location.latitude, location.longitude))
+        }
+        if (flagCurrentLoc) {
+            recentr()
+            flagCurrentLoc = false
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
     private fun setToDefault() {
         callParentLocationApi()
         isInitialSelectParentLoc = true
@@ -606,7 +687,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
         val currentPos = LatLng(newLat, newLng)
         if (currentPos != null && map != null) {
             map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(25f))
             println("laYard-$newLat, $newLng")
         }
     }
@@ -642,16 +723,17 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     override fun onPause() {
         super.onPause()
         binding.mapview.onPause()
-        if (t != null) {
+     /*   if (t != null) {
             t.cancel()
             tt!!.cancel()
-        }
+        }*/
     }
 
     override fun onResume() {
         super.onResume()
         binding.mapview.onResume()
 
+/*
         if (t == null) {
             t = Timer()
             tt = object : TimerTask() {
@@ -661,6 +743,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
         }
+*/
 
         flagCurrentLoc = true
     }

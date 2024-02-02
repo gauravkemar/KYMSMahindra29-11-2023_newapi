@@ -125,14 +125,7 @@ class MyTransactionActivity : AppCompatActivity() {
                             this@MyTransactionActivity,
                             "Error Message: $errorMessage"
                         ).show()
-                        if (errorMessage == "Unauthorized" || errorMessage == "Authentication token expired" ||
-                            errorMessage == Constants.CONFIG_ERROR) {
-                            session.showCustomDialog(
-                                "Session Expired",
-                                "Please re-login to continue",
-                                this@MyTransactionActivity
-                            )
-                        }
+                        session.showToastAndHandleErrors(errorMessage, this@MyTransactionActivity)
                     }
                 }
 
@@ -226,7 +219,7 @@ class MyTransactionActivity : AppCompatActivity() {
             startActivity(
                 Intent(
                     this@MyTransactionActivity,
-                    NavigateVehicleActivity::class.java
+                    NavigateVehicleRefactored::class.java
                 ).apply {
                     /*       it.coordinates?.let { it1 -> Utils.parseString(it1) }?.get(0)
                                ?.let { it1 -> putExtra(LATITUDE, it1.latitude) }
@@ -234,9 +227,12 @@ class MyTransactionActivity : AppCompatActivity() {
                                ?.let { it1 -> putExtra(LONGITUDE, it1.longitude) }*/
                     val (latitude: Double?, longitude) = it.coordinates?.split(",")!!.map { it.toDoubleOrNull() }
                     if (latitude != null && longitude != null) {
-                        val intent = Intent(this@MyTransactionActivity, NavigateVehicleActivity::class.java)
+                        val intent = Intent(this@MyTransactionActivity, NavigateVehicleRefactored::class.java)
                         intent.putExtra(Constants.LATITUDE, latitude)
                         intent.putExtra(Constants.LONGITUDE, longitude)
+                        intent.putExtra(Constants.ModelCode, it.modelCode)
+                        intent.putExtra(Constants.ColorCode, it.colorDescription)
+                        intent.putExtra(Constants.VinNo, it.vin)
                         startActivity(intent)
                     } else {
                         // Handle invalid coordinates here if needed.

@@ -4,6 +4,9 @@ object Constants {
 
     val LONGITUDE: String = "longitude"
     val LATITUDE: String = "latitude"
+    val ModelCode: String = "modelcode"
+    val ColorCode: String = "colorcode"
+    val VinNo: String = "vinno"
     const val KEY_USER_ID = "id"
     const val LOGGEDIN = "loggedIn"
     const val IS_ADMIN = "isAdmin"
@@ -20,7 +23,9 @@ object Constants {
     const val SHARED_PREF = "mahindra_yard_shared_pref"
     const val SERVER_IP = "server_ip"
     const val ISFIRSTTIME = "is_first_time"
-
+    const val SESSION_EXPIRE = "Session Expired ! Please relogin"
+    const val KEY_USER_NAME = "userName"
+    const val KEY_JWT_TOKEN = "jwtToken"
     const val SERVER_IP_SHARED = "192.168.1.105"
 
     const val GET = 1
@@ -90,9 +95,12 @@ object Constants {
     //my transaction
     const val GET_MY_TRANSACTION_VEHICLE_LIST = "Dashboard/getMyTransactions"
 
+    //change password
+    const val  CHANGE_PASSWORD= "UserManagement/change-password"
+
 
     const val LOCATION_ID = "locationId"
-    //const val BASE_URL = "http://192.168.1.52:5000/api/"
+    //const val BASE_URL = "http://192.168.1.32:5000/api/"
     const val BASE_URL = "http://103.240.90.141:5050/Service/api/"
     //const val BASE_URL = "http://rfid-yard-lb-1652367993.ap-south-1.elb.amazonaws.com:82/api/"
 

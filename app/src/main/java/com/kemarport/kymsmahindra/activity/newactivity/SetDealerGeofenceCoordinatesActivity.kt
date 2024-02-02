@@ -6,8 +6,10 @@ import android.app.ProgressDialog
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Location
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MenuItem
@@ -20,6 +22,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -66,8 +74,8 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
     var newLat = 0.0
     var newLng = 0.0
 
-    var t = Timer()
-    var tt: TimerTask? = null
+/*    var t = Timer()
+    var tt: TimerTask? = null*/
 
     var latLngList: ArrayList<LatLng> = ArrayList()
     var markerList: ArrayList<Marker> = ArrayList()
@@ -113,6 +121,7 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
     private lateinit var placesClient: PlacesClient
 
     private val drawnPolygons: ArrayList<Polygon> = ArrayList()
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,7 +131,9 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
         progress = ProgressDialog(this)
         progress.setMessage("Loading...")
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        requestLocation()
         Places.initialize(
             applicationContext,
             "AIzaSyCvAnBPc3w0-beVe67PMo3WEPf5OiLDStw"
@@ -468,12 +479,12 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
             }
         }
 
-        tt = object : TimerTask() {
+    /*    tt = object : TimerTask() {
             override fun run() {
                 getLocationNew()
             }
         }
-        t.scheduleAtFixedRate(tt, 1000, 1000)
+        t.scheduleAtFixedRate(tt, 1000, 1000)*/
 
         binding.btnRecenter.setOnClickListener {
             recentr()
@@ -492,6 +503,72 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
         }
 
 
+    }
+    private fun requestLocation() {
+        /*        val locationRequest = LocationRequest.create()
+                locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+                locationRequest.interval = 2000 //4 seconds*/
+
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(true)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        /*   fusedLocationClient.requestLocationUpdates(
+               locationRequest,
+               object : com.google.android.gms.location.LocationCallback() {
+                   override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
+                       val location = locationResult.lastLocation
+                       // Handle the location update here
+                       if (location != null) {
+                           //Log.e("fromfused",location.toString())
+                           Log.e("currentLocNewFusedGPS",location.toString())
+                           updateLocation(location)
+                       }
+                   }
+               },
+               null
+           )*/
+    }
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val location = locationResult.lastLocation
+            if (location != null) {
+                Log.e("currentLocNewFusedGPS", location.toString())
+                // Toast.makeText(this@ParkReparkActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
+                updateLocation(location)
+            }
+        }
+    }
+
+    private fun updateLocation(location: Location) {
+
+        newLat = location.latitude
+        newLng = location.longitude
+        if (currentMarker != null) currentMarker!!.remove()
+        val markerOptions =
+            MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
+                .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
+        currentMarker = map?.addMarker(markerOptions)
+        binding.addMarker.setOnClickListener {
+            addMarker(LatLng(location.latitude, location.longitude))
+        }
+        if (flagCurrentLoc) {
+            recentr()
+            flagCurrentLoc = false
+        }
     }
 
     private fun performSearch(locationName: String) {
@@ -561,22 +638,45 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
     override fun onDestroy() {
         super.onDestroy()
         binding.mapview.onDestroy()
+        stopLocationUpdates()
     }
 
     override fun onPause() {
         super.onPause()
         binding.mapview.onPause()
-        if (t != null) {
+        stopLocationUpdates()
+      /*  if (t != null) {
             t.cancel()
             tt!!.cancel()
-        }
+        }*/
     }
 
+    override fun onStop() {
+        super.onStop()
+        stopLocationUpdates()
+    }
     override fun onResume() {
         super.onResume()
         binding.mapview.onResume()
 
-        if (t == null) {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(false)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+
+  /*      if (t == null) {
             t = Timer()
             tt = object : TimerTask() {
                 override fun run() {
@@ -584,10 +684,13 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
                 }
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
-        }
+        }*/
         flagCurrentLoc = true
     }
 
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
     override fun onLowMemory() {
         super.onLowMemory()
         binding.mapview.onLowMemory()
@@ -858,7 +961,7 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
         val currentPos = LatLng(newLat, newLng)
         if (currentPos != null && map != null) {
             map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(25f))
             println("laDealer-$newLat, $newLng")
         }
     }

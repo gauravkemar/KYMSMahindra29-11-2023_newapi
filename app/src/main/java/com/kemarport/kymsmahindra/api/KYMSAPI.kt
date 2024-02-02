@@ -3,6 +3,8 @@ package com.kemarport.mahindrakiosk.api
 import com.kemarport.kymsmahindra.helper.Constants
 import com.kemarport.kymsmahindra.model.GeneralResponse
 import com.kemarport.kymsmahindra.model.appDetails.GetAppDetailsResponse
+import com.kemarport.kymsmahindra.model.changepassword.ChangePasswordRequest
+import com.kemarport.kymsmahindra.model.changepassword.ChangePasswordResponse
 import com.kemarport.kymsmahindra.model.login.LoginRequest
 import com.kemarport.kymsmahindra.model.login.LoginResponse
 import com.kemarport.kymsmahindra.model.newapi.parkrepark.GetAllYardLocationsResponseItem
@@ -18,8 +20,10 @@ import com.kemarport.kymsmahindra.model.newapi.setgeofence.GetParentLocationsRes
 import com.kemarport.kymsmahindra.model.newapi.setgeofence.PostGeofenceCoordinatesRequest
 import com.kemarport.kymsmahindra.model.newapi.setgeofence.PostGeofenceCoordinatesResponse
 
+
 import retrofit2.Response
 import retrofit2.http.*
+import java.util.ArrayList
 
 
 interface KYMSAPI {
@@ -115,6 +119,13 @@ interface KYMSAPI {
         @Header(Constants.HTTP_HEADER_AUTHORIZATION) token: String,
         @Query("userName") userName: String?
     ): Response<ArrayList<GetSearchVehiclesListResponse>>
+
+    @POST(Constants.CHANGE_PASSWORD)
+    suspend fun changePassword(
+        @Header(Constants.HTTP_HEADER_AUTHORIZATION) token: String,
+        @Body
+        changePasswordRequest: ChangePasswordRequest,
+    ): Response<ChangePasswordResponse>
 
 
 }

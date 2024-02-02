@@ -110,6 +110,10 @@ class HomeMenuActivity : AppCompatActivity() {
         binding.mcvAdminSettings .setOnClickListener {
             startActivity(Intent(this@HomeMenuActivity,AdminActivity::class.java))
         }
+
+        binding.changepass .setOnClickListener {
+            startActivity(Intent(this@HomeMenuActivity,ChangePasswordActivity::class.java))
+        }
     }
 
     fun parseStringToList(inputString: String): ArrayList<LatLng> {

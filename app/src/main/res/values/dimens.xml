@@ -13,5 +13,7 @@
     <dimen name="tv_size_14">14sp</dimen>
     <dimen name="tv_size_16">16sp</dimen>
     <dimen name="tv_size_18">18sp</dimen>
+    <dimen name="medium_text">14sp</dimen>
     <dimen name="card_elevation">10dp</dimen>
+    <dimen name="dimen_14">14dp</dimen>
 </resources>

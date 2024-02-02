@@ -2,14 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="com.symbol.emdk.permission.EMDK" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+
+    <uses-feature android:name="android.hardware.sensor.accelerometer" />
+    <uses-feature android:name="android.hardware.sensor.compass" />
 
     <queries>
         <package android:name="com.symbol.emdk.emdkservice" />
@@ -24,8 +28,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KYMSMahindra"
+        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+            android:name=".activity.newactivity.locationtesting.LocationTestingActivity"
+            android:exported="true" >
+
+
+        </activity>
+        <activity
+            android:name=".activity.newactivity.NavigateVehicleRefactored"
+            android:exported="true"
+            android:launchMode="singleInstance">
+
+        </activity>
         <activity
             android:name=".activity.newactivity.MyTransactionActivity"
             android:exported="false" />
@@ -56,7 +73,6 @@
         <activity
             android:name=".activity.newactivity.VehicleDetailsScreen"
             android:exported="true" />
-
         <activity
             android:name=".activity.ScanBarcodeActivity"
             android:exported="false">
@@ -65,20 +81,29 @@
                 android:value="" />
         </activity>
         <activity
-            android:name=".activity.ParkInActivity"
+            android:name=".activity.newactivity.ChangePasswordActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <!--
+<activity
+            android:name=".activity.newactivity.ParkReparkActivity"
             android:exported="true">
 
-            <!--
+            &lt;!&ndash;
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            -->
+            &ndash;&gt;
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+        -->
         <activity
             android:name=".activity.newactivity.NavigateVehicleActivity"
             android:exported="true"
@@ -87,7 +112,6 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-
         <activity
             android:name=".activity.newactivity.LoginActivity"
             android:exported="true"
@@ -97,23 +121,23 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-        <activity
+        <!--
+<activity
             android:name=".activity.SetGeofenceActivity"
             android:exported="true">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+        -->
         <activity
             android:name=".activity.newactivity.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.KYMSMahindraNoActBar">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
+                <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />

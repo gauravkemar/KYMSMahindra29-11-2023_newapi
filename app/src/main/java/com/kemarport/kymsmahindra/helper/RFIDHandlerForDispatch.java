@@ -7,6 +7,7 @@ import android.widget.Toast;
 
 import com.kemarport.kymsmahindra.activity.newactivity.DispatchVehicleActivity;
 import com.kemarport.kymsmahindra.activity.newactivity.ParkReparkActivity;
+
 import com.zebra.rfid.api3.ACCESS_OPERATION_CODE;
 import com.zebra.rfid.api3.ACCESS_OPERATION_STATUS;
 import com.zebra.rfid.api3.Antennas;
@@ -179,7 +180,11 @@ public class RFIDHandlerForDispatch implements Readers.RFIDReaderEventHandler {
             // Based on support available on host device choose the reader type
             InvalidUsageException invalidUsageException = null;
             readers = new Readers(context, ENUM_TRANSPORT.ALL);
-            availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
+            try {
+                availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
+            } catch (InvalidUsageException e) {
+                throw new RuntimeException(e);
+            }
             if (invalidUsageException != null) {
                 readers.Dispose();
                 readers = null;
@@ -201,7 +206,11 @@ public class RFIDHandlerForDispatch implements Readers.RFIDReaderEventHandler {
         @Override
         protected String doInBackground(Void... voids) {
             Log.d(TAG, "ConnectionTask");
-            GetAvailableReader();
+            try {
+                GetAvailableReader();
+            } catch (InvalidUsageException e) {
+                throw new RuntimeException(e);
+            }
             if (reader != null)
                 return connect();
             return "Failed to find or connect reader";
@@ -215,7 +224,7 @@ public class RFIDHandlerForDispatch implements Readers.RFIDReaderEventHandler {
         }
     }
 
-    private synchronized void GetAvailableReader() {
+    private synchronized void GetAvailableReader() throws InvalidUsageException {
         Log.d(TAG, "GetAvailableReader");
         if (readers != null) {
             readers.attach(this);

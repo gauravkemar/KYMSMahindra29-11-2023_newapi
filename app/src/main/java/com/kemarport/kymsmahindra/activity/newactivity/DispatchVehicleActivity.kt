@@ -2,19 +2,25 @@ package com.kemarport.kymsmahindra.activity.newactivity
 
 import android.Manifest
 import android.app.ProgressDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.location.Location
+import android.location.LocationManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.RotateAnimation
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
@@ -22,6 +28,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -76,8 +88,8 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     var newLat = 0.0
     var newLng = 0.0
 
-    var t = Timer()
-    var tt: TimerTask? = null
+/*    var t = Timer()
+    var tt: TimerTask? = null*/
     private lateinit var viewModel: ParkReparkViewModel
 
     private lateinit var session: SessionManager
@@ -111,11 +123,12 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         if (isBarcodeInit) {
             deInitScanner()
         }
-        if (t != null) {
+      /*  if (t != null) {
             t.cancel()
             tt!!.cancel()
-        }
+        }*/
         resumeFlag = true
+        stopLocationUpdates()
     }
 
     override fun onPostResume() {
@@ -143,8 +156,13 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         if (isBarcodeInit) {
             deInitScanner()
         }
+        stopLocationUpdates()
     }
 
+    override fun onStop() {
+        super.onStop()
+        stopLocationUpdates()
+    }
     fun performInventory() {
         rfidHandler!!.performInventory()
     }
@@ -174,6 +192,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     private var currentLongitude: Double = 0.0
 
     private var flagCurrentLoc=true
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -194,7 +213,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         Toasty.Config.getInstance()
             .setGravity(Gravity.CENTER)
             .apply()
-
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         val kymsRepository = KYMSRepository()
         val viewModelProviderFactory =
             ParkReparkViewModelFactory(application, kymsRepository)
@@ -216,6 +235,8 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             binding.parkInVehicleToolbar.title = "Dispatch"
         }
 
+        requestLocationEnable()
+        requestLocation()
         userDetails = session.getUserDetails()
         token = userDetails["jwtToken"]
         userName = userDetails["userName"]
@@ -228,7 +249,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
             binding.scanBarcode.visibility = View.GONE
             //binding.radioGroup.visibility = View.VISIBLE
             defaultRFID()
-           // initBarcode()
+            //initBarcode()
         } else {
             binding.scanBarcode.visibility = View.VISIBLE
             // binding.radioGroup.visibility = View.GONE
@@ -277,11 +298,14 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
 
                             for (e in resultResponse)
                             {
+                                Log.d("thiscoordinates",e.coordinates.toString())
                                 if(e.locationType.equals("Internal"))
                                 {
+
                                     if(e.coordinates!=null)
                                     {
-                                        var coordinates: ArrayList<LatLng> = parseStringToList(e.coordinates)
+
+                                        var coordinates: ArrayList<LatLng> = parseStringToList(e.coordinates!!)
                                         if (!coordinatesMap.containsKey(e.locationId.toString())) {
                                             coordinatesMap[e.locationId.toString()] = coordinates
                                             //  idMap[e.locationCode] = "${resultResponse.locationId}"
@@ -290,7 +314,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                                         {
                                             locationMap[e.locationName] = coordinates
                                         }
-                                        Log.d("thiscoordinates",coordinates.toString())
+
                                         val polygonOptions =
                                             PolygonOptions().addAll(coordinates).clickable(false)
                                                 .strokeColor(
@@ -548,13 +572,100 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                 else -> {}
             }
         }
-        tt = object : TimerTask() {
+ /*       tt = object : TimerTask() {
             override fun run() {
                 getLocationNew()
             }
         }
 
-        t.scheduleAtFixedRate(tt, 1000, 1000)
+        t.scheduleAtFixedRate(tt, 1000, 1000)*/
+    }
+    private fun requestLocationEnable() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            session.showAlertMessage(this@DispatchVehicleActivity)
+        }
+    }
+    private fun requestLocation() {
+    /*    val locationRequest = LocationRequest.create()
+        locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+        locationRequest.interval = 1000 //4 seconds*/
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(true)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+   /*     fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            object : com.google.android.gms.location.LocationCallback() {
+                override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
+                    val location = locationResult.lastLocation
+                    // Handle the location update here
+                    if (location != null) {
+                        //Log.e("fromfused",location.toString())
+                        Log.e("currentLocNewFusedGPS",location.toString())
+                        updateLocation(location)
+                    }
+                }
+            },
+            null
+        )*/
+    }
+
+
+
+private val locationCallback = object : LocationCallback() {
+    override fun onLocationResult(locationResult: LocationResult) {
+        val location = locationResult.lastLocation
+        if (location != null) {
+            Log.e("currentLocNewFusedGPS", location.toString())
+            //Toast.makeText(this@DispatchVehicleActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
+            updateLocation(location)
+        }
+    }
+}
+
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
+    private fun updateLocation(location: Location) {
+
+        runOnUiThread(Runnable {
+
+            newLat = location.latitude
+            newLng = location.longitude
+            currentLatitude = location.latitude
+            currentLongitude = location.longitude
+            if (currentMarker != null) currentMarker!!.remove()
+            updateTvCurrentLoc()
+            val markerOptions =
+                MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
+                    .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
+            currentMarker = map!!.addMarker(markerOptions)
+
+            Log.e(TAG, "Latitude/Longitude - $newLat,$newLng")
+            if(flagCurrentLoc)
+            {
+                recentr()
+                flagCurrentLoc=false
+            }
+
+
+
+        })
+
     }
     fun getVehicleStatus(scanned: String) {
         if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
@@ -725,6 +836,15 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                     recentr()
                     flagCurrentLoc=false
                 }
+                val currentPos = LatLng(newLat, newLng)
+                if(currentPos!=null && map!=null)
+                {
+
+                    map!!.setOnCameraMoveListener {
+                        val cameraPosition = map!!.cameraPosition
+                        rotateCompassImageView(cameraPosition.bearing)
+                    }
+                }
             }
         })
     }
@@ -822,7 +942,23 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                 initScanner()
             }
         }
-        if (t == null) {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(true)
+            .setMinUpdateIntervalMillis(1000)
+            .setMaxUpdateDelayMillis(1000)
+            .build()
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+   /*     if (t == null) {
             t = Timer()
             tt = object : TimerTask() {
                 override fun run() {
@@ -830,7 +966,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                 }
             }
             t.scheduleAtFixedRate(tt, 1000, 1000)
-        }
+        }*/
         flagCurrentLoc=true
     }
 
@@ -958,8 +1094,30 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         if(currentPos!=null && map!=null)
         {
             map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
-            map!!.animateCamera(CameraUpdateFactory.zoomTo(16f))
+            map!!.animateCamera(CameraUpdateFactory.zoomTo(25f))
             println("la-$newLat, $newLng")
+
+
+        }
+    }
+
+    private fun rotateCompassImageView(bearing: Float) {
+        if (::binding.isInitialized) {
+            val currentRotation = binding.imCompassDirection.rotation
+            val toRotation = -bearing
+
+            val rotateAnimation = RotateAnimation(
+                currentRotation, toRotation,
+                Animation.RELATIVE_TO_SELF, 0.5f,
+                Animation.RELATIVE_TO_SELF, 0.5f
+            )
+
+            rotateAnimation.duration = 100 // Adjust the duration as needed
+            rotateAnimation.fillAfter = true
+
+            binding.imCompassDirection.startAnimation(rotateAnimation)
+        } else {
+            Log.e("MainActivity", "Binding is not initialized")
         }
     }
 
@@ -1020,6 +1178,8 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         map = googleMap
         map!!.uiSettings.isMyLocationButtonEnabled = false
         map!!.mapType = GoogleMap.MAP_TYPE_NORMAL
+
+
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

@@ -84,7 +84,7 @@ class Gps(private val mContext: Context) : Service(),
                             longitude = location!!.longitude
                         }
                     }
-                    //Log.d("GPS Enabled", "GPS Enabled-$latitude  $longitude")
+                    Log.d("GPS Enabled", "GPS Enabled-$latitude  $longitude")
                 }
 
                 // if Not Found get lat/long using Network Provider
@@ -118,7 +118,7 @@ class Gps(private val mContext: Context) : Service(),
                             if (location != null) {
                                 latitude = location!!.latitude
                                 longitude = location!!.longitude
-                               // Log.d("Network", "Network-$latitude  $longitude")
+                               Log.d("Network", "Network-$latitude  $longitude")
                             }
                         }
                     }
@@ -201,7 +201,10 @@ class Gps(private val mContext: Context) : Service(),
         alertDialog.show()
     }
 
-    override fun onLocationChanged(location: Location) {}
+    override fun onLocationChanged(location: Location) {
+        latitude = location!!.latitude
+        longitude = location!!.longitude
+    }
     override fun onProviderDisabled(provider: String) {}
     override fun onProviderEnabled(provider: String) {}
     override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}

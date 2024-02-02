@@ -8,6 +8,8 @@ import com.kemarport.kymsmahindra.helper.Constants
 import com.kemarport.kymsmahindra.helper.Resource
 import com.kemarport.kymsmahindra.helper.Utils
 import com.kemarport.kymsmahindra.model.appDetails.GetAppDetailsResponse
+import com.kemarport.kymsmahindra.model.changepassword.ChangePasswordRequest
+import com.kemarport.kymsmahindra.model.changepassword.ChangePasswordResponse
 import com.kemarport.kymsmahindra.model.login.LoginRequest
 import com.kemarport.kymsmahindra.model.login.LoginResponse
 import com.kemarport.kymsmahindra.repository.KYMSRepository
@@ -101,6 +103,61 @@ class LoginViewModel (
         if (response.isSuccessful) {
             response.body()?.let { appDetailsResponse ->
                 return Resource.Success(appDetailsResponse)
+            }
+        } else if (response.errorBody() != null) {
+            val errorObject = response.errorBody()?.let {
+                JSONObject(it.charStream().readText())
+            }
+            errorObject?.let {
+                errorMessage = it.getString(Constants.HTTP_ERROR_MESSAGE)
+            }
+        }
+        return Resource.Error(errorMessage)
+    }
+
+    /////////changepasword Api
+    val changePasswordMutableLiveData: MutableLiveData<Resource<ChangePasswordResponse>> =
+        MutableLiveData()
+
+    fun changePassword(
+        token:String,
+        baseUrl: String,
+        changePasswordRequest: ChangePasswordRequest
+    ) {
+        viewModelScope.launch {
+            safeAPICallChangePasswordDetails(token,baseUrl, changePasswordRequest)
+        }
+    }
+
+    private suspend fun safeAPICallChangePasswordDetails(
+        token: String,
+        baseUrl: String,
+        changePasswordRequest: ChangePasswordRequest
+    ) {
+        changePasswordMutableLiveData.postValue(Resource.Loading())
+        try {
+            if (Utils.hasInternetConnection(getApplication())) {
+                val response = kymsRepository.changePassword(token,baseUrl, changePasswordRequest)
+                changePasswordMutableLiveData.postValue(handleChangePasswordResponse(response))
+            } else {
+                changePasswordMutableLiveData.postValue(Resource.Error(Constants.NO_INTERNET))
+            }
+        } catch (t: Throwable) {
+            when (t) {
+                is Exception -> {
+                    changePasswordMutableLiveData.postValue(Resource.Error("${t.message}"))
+                }
+
+                else -> changePasswordMutableLiveData.postValue(Resource.Error(Constants.CONFIG_ERROR))
+            }
+        }
+    }
+
+    private fun handleChangePasswordResponse(response: Response<ChangePasswordResponse>): Resource<ChangePasswordResponse> {
+        var errorMessage = ""
+        if (response.isSuccessful) {
+            response.body()?.let { response ->
+                return Resource.Success(response)
             }
         } else if (response.errorBody() != null) {
             val errorObject = response.errorBody()?.let {
