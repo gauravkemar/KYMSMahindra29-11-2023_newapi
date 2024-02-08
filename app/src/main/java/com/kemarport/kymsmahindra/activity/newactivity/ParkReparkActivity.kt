@@ -92,6 +92,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
     private var userName: String? = ""
     private var locationId: String? = ""
     private lateinit var progress: ProgressDialog
+    private lateinit var locationProg: ProgressDialog
 
     val coordinatesMap = HashMap<String, ArrayList<LatLng>>()
     val idMap = HashMap<String, String>()
@@ -197,6 +198,9 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
 
         progress = ProgressDialog(this)
         progress.setMessage("Loading...")
+        locationProg=ProgressDialog(this)
+        locationProg.setMessage("Please wait,\nGoogle Map Getting Ready...")
+        locationProg.setCancelable(false)
 
         session = SessionManager(this)
         coordinatePref =
@@ -224,6 +228,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         requestLocation()
         defaultVinApiCall()
         getInternalYardLoc()
+        showProgressBarLocation()
         /*binding.radioGroup.setOnCheckedChangeListener { buttonView, selected ->
             if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
                 if (selected == binding.radioBtn1.getId()) {
@@ -264,25 +269,29 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
                             for (e in resultResponse) {
                                 if (e.locationType.equals("Internal")) {
                                     if (e.coordinates != null ) {
-                                        var coordinates: ArrayList<LatLng> =
-                                            parseStringToList(e.coordinates!!)
-                                        if (!coordinatesMap.containsKey(e.locationId.toString())) {
-                                            coordinatesMap[e.locationId.toString()] = coordinates
-                                        }
-                                        if (!locationMap.containsKey(e.locationName)) {
-                                            locationMap[e.locationName] = coordinates
-                                        }
-                                        Log.d("thiscoordinates", coordinates.toString())
-                                        val polygonOptions =
-                                            PolygonOptions().addAll(coordinates).clickable(false)
-                                                .strokeColor(
-                                                    ContextCompat.getColor(
-                                                        this,
-                                                        R.color.colorPrimaryLight
+                                        if(!e.coordinates.equals("[]"))
+                                        {
+                                            var coordinates: ArrayList<LatLng> =
+                                                parseStringToList(e.coordinates!!)
+                                            if (!coordinatesMap.containsKey(e.locationId.toString())) {
+                                                coordinatesMap[e.locationId.toString()] = coordinates
+                                            }
+                                            if (!locationMap.containsKey(e.locationName)) {
+                                                locationMap[e.locationName] = coordinates
+                                            }
+                                            Log.d("thiscoordinates", coordinates.toString())
+                                            val polygonOptions =
+                                                PolygonOptions().addAll(coordinates).clickable(false)
+                                                    .strokeColor(
+                                                        ContextCompat.getColor(
+                                                            this,
+                                                            R.color.colorPrimaryLight
+                                                        )
                                                     )
-                                                )
-                                                .strokeWidth(3f)
-                                        map!!.addPolygon(polygonOptions)
+                                                    .strokeWidth(3f)
+                                            map!!.addPolygon(polygonOptions)
+                                        }
+
                                     }
 
                                 }
@@ -585,6 +594,8 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
         locationRequest.interval = 2000 //4 seconds*/
 
+
+
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .setWaitForAccurateLocation(true)
             .setMinUpdateIntervalMillis(1000)
@@ -622,6 +633,7 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation
             if (location != null) {
+                hideProgressBarLocation()
                 Log.e("currentLocNewFusedGPS", location.toString())
                // Toast.makeText(this@ParkReparkActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
                 updateLocation(location)
@@ -748,16 +760,28 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
             var geofenceId = -1
 
             // Check if the user is inside any static geofence
-            if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
-                // Check each dynamic geofence
-                for ((key, value) in coordinatesMap.entries) {
-                    if (containsLocation(LatLng(newLat, newLng), value, false)) {
-                        insideGeofence = true
-                        geofenceId = key.toInt()
-                        break
+
+            if(currentLatitude!=0.0 && currentLongitude!=0.0)
+            {
+                if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
+                    // Check each dynamic geofence
+                    for ((key, value) in coordinatesMap.entries) {
+                        if (containsLocation(LatLng(newLat, newLng), value, false)) {
+                            insideGeofence = true
+                            geofenceId = key.toInt()
+                            break
+                        }
                     }
                 }
             }
+            else{
+                Toasty.warning(
+                    this@ParkReparkActivity,
+                    "No Location Found, \nPlease wait for a moment!!",
+                    Toasty.LENGTH_SHORT
+                ).show()
+            }
+
 
             // Process based on whether the user is inside any geofence or not
             if (insideGeofence) {
@@ -951,11 +975,13 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
         binding.mapview.onResume()
         if (resumeFlag) {
             resumeFlag = false
-            if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
+           /* if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
                 initBarcodeManager()
                 initScanner()
-            }
+            }*/
+            defaultRFID()
         }
+        showProgressBarLocation()
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .setWaitForAccurateLocation(false)
             .setMinUpdateIntervalMillis(1000)
@@ -1147,6 +1173,13 @@ class ParkReparkActivity : AppCompatActivity(), View.OnClickListener,
 
     fun hideProgressBar() {
         progress.cancel()
+    }
+  fun showProgressBarLocation() {
+      locationProg.show()
+    }
+
+    fun hideProgressBarLocation() {
+        locationProg.cancel()
     }
 
     fun parseStringToList(inputString: String): ArrayList<LatLng> {

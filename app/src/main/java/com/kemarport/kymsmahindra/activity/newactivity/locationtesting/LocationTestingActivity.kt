@@ -1,130 +1,189 @@
 package com.kemarport.kymsmahindra.activity.newactivity.locationtesting
 
+
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Criteria
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationRequest
-
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationToken
-import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.android.gms.tasks.OnTokenCanceledListener
 import com.kemarport.kymsmahindra.R
+
 import com.kemarport.kymsmahindra.databinding.ActivityLocationTestingBinding
-import java.util.Timer
-import java.util.TimerTask
 
 
-class LocationTestingActivity : AppCompatActivity() {
+class LocationTestingActivity : AppCompatActivity(), LocationListener {
     lateinit var binding:ActivityLocationTestingBinding
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
- /*   private lateinit var locationManager: LocationManager
-    private val locationListener: LocationListener = object : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            // Handle location updates here
-            showToast("Latitude: ${location.latitude}, Longitude: ${location.longitude}")
-        }
 
-        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-            // Handle provider status changes
-        }
-
-        override fun onProviderEnabled(provider: String) {
-            // Handle provider enabled
-            showToast("$provider enabled")
-        }
-
-        override fun onProviderDisabled(provider: String) {
-            // Handle provider disabled
-            showToast("$provider disabled")
-        }
-    }*/
-
-    var t = Timer()
-    var tt: TimerTask? = null
+    private var locationManager: LocationManager? = null
+    private var provider: String? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding=DataBindingUtil.setContentView(this,R.layout.activity_location_testing)
-     fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-          tt = object : TimerTask() {
-                   override fun run() {
-                       getLocationNew()
-                   }
-               }
-               t.scheduleAtFixedRate(tt, 1000, 1000)
+        binding=DataBindingUtil.setContentView(this,  R.layout.activity_location_testing)
 
- }
-    private fun getLocationNew(){
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+        // Check for location permissions
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Request permissions if not granted
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PERMISSION_REQUEST_CODE)
             return
         }
-        fusedLocationClient.getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY, object : CancellationToken() {
-            override fun onCanceledRequested(p0: OnTokenCanceledListener) = CancellationTokenSource().token
 
-            override fun isCancellationRequested() = false
-        })
-            .addOnSuccessListener { location: Location? ->
-                if (location == null)
-                    Toast.makeText(this, "Cannot get location.", Toast.LENGTH_SHORT).show()
-                else {
-                    val lat = location.latitude
-                    val lon = location.longitude
-                    binding.tvLocation.setText("location  ($lat  ,  $lon).")
-                    Toast.makeText(this, "  location($lat, $lon).", Toast.LENGTH_SHORT).show()
-                    Log.d("currentLoc","location  ($lat  ,  $lon).")
+        val criteria = Criteria()
+        provider = locationManager!!.getBestProvider(criteria, false)
+        val location = provider?.let { locationManager!!.getLastKnownLocation(it) }
 
-
-                }
-
-            }
-
-    }
-    override fun onPause() {
-        super.onPause()
-         if (t != null) {
-             t.cancel()
-             tt!!.cancel()
-         }
-
-    }
-
+        if (location != null) {
+            println("Provider $provider has been selected.")
+            onLocationChanged(location)
+        } else {
+            binding.TextView02.text = "Location not available"
+            binding.TextView04.text = "Location not available"
+        }
+        binding.TextView02.setOnClickListener {
+            provider?.let { locationManager!!.requestLocationUpdates(it, 400, 1f, this) }
+        }
+ }
     override fun onResume() {
         super.onResume()
-        if (t == null) {
-            t = Timer()
-            tt = object : TimerTask() {
-                override fun run() {
-                    getLocationNew()
-                }
-            }
-            t.scheduleAtFixedRate(tt, 1000, 1000)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return
         }
+        provider?.let { locationManager!!.requestLocationUpdates(it, 400, 1f, this) }
     }
+
+    override fun onPause() {
+        super.onPause()
+        locationManager!!.removeUpdates(this)
+    }
+
+    override fun onLocationChanged(location: Location) {
+        val lat = location.latitude
+        val lng = location.longitude
+        binding.TextView02.text = lat.toString()
+        binding.TextView04.text = lng.toString()
+        Log.d("cord",lat.toString()+lng.toString())
+    }
+
+    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+        // Not implemented
+    }
+
+    override fun onProviderEnabled(provider: String) {
+        Toast.makeText(this, "Enabled new provider $provider", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onProviderDisabled(provider: String) {
+        Toast.makeText(this, "Disabled provider $provider", Toast.LENGTH_SHORT).show()
+    }
+
+    companion object {
+        private const val PERMISSION_REQUEST_CODE = 101
+    }
+}
+
+
+/*    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+
+    var t = Timer()
+    var tt: TimerTask? = null*/
+/*  fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+         tt = object : TimerTask() {
+                  override fun run() {
+                      getLocationNew()
+                  }
+              }
+              t.scheduleAtFixedRate(tt, 1000, 1000)*/
+/* private fun getLocationNew(){
+     if (ActivityCompat.checkSelfPermission(
+             this,
+             Manifest.permission.ACCESS_FINE_LOCATION
+         ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+             this,
+             Manifest.permission.ACCESS_COARSE_LOCATION
+         ) != PackageManager.PERMISSION_GRANTED
+     ) {
+
+         return
+     }
+     fusedLocationClient.getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY, object : CancellationToken() {
+         override fun onCanceledRequested(p0: OnTokenCanceledListener) = CancellationTokenSource().token
+
+         override fun isCancellationRequested() = false
+     })
+         .addOnSuccessListener { location: Location? ->
+             if (location == null)
+                 Toast.makeText(this, "Cannot get location.", Toast.LENGTH_SHORT).show()
+             else {
+                 val lat = location.latitude
+                 val lon = location.longitude
+                 binding.tvLocation.setText("location  ($lat  ,  $lon).")
+                 Toast.makeText(this, "  location($lat, $lon).", Toast.LENGTH_SHORT).show()
+                 Log.d("currentLoc","location  ($lat  ,  $lon).")
+
+
+             }
+
+         }
+
+ }
+ override fun onPause() {
+     super.onPause()
+      if (t != null) {
+          t.cancel()
+          tt!!.cancel()
+      }
+
+ }
+
+ override fun onResume() {
+     super.onResume()
+     if (t == null) {
+         t = Timer()
+         tt = object : TimerTask() {
+             override fun run() {
+                 getLocationNew()
+             }
+         }
+         t.scheduleAtFixedRate(tt, 1000, 1000)
+     }
+ }*/
+
+/*   private lateinit var locationManager: LocationManager
+   private val locationListener: LocationListener = object : LocationListener {
+       override fun onLocationChanged(location: Location) {
+           // Handle location updates here
+           showToast("Latitude: ${location.latitude}, Longitude: ${location.longitude}")
+       }
+
+       override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+           // Handle provider status changes
+       }
+
+       override fun onProviderEnabled(provider: String) {
+           // Handle provider enabled
+           showToast("$provider enabled")
+       }
+
+       override fun onProviderDisabled(provider: String) {
+           // Handle provider disabled
+           showToast("$provider disabled")
+       }
+   }*/
 
       /*  locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
@@ -152,7 +211,6 @@ class LocationTestingActivity : AppCompatActivity() {
             MIN_DISTANCE_CHANGE_FOR_UPDATES,
             locationListener
         )*/
-    }
 
    /* override fun onRequestPermissionsResult(
         requestCode: Int,

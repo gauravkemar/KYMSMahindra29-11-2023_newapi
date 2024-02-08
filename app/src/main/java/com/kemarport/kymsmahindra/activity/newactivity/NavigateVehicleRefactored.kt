@@ -2,12 +2,16 @@ package com.kemarport.kymsmahindra.activity.newactivity
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Movie
+import android.graphics.drawable.BitmapDrawable
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -95,6 +99,8 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
     val handler = Handler(Looper.getMainLooper())
     var showAlert = true
 
+    private lateinit var locationProg: ProgressDialog
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // setContentView(R.layout.activity_navigate_testing_demo)
@@ -105,6 +111,10 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
         setSupportActionBar(binding.searchVehicleToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
+
+        locationProg=ProgressDialog(this)
+        locationProg.setMessage("Please wait,\nGoogle Map Getting Ready...")
+        locationProg.setCancelable(false)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         val mapFragment =
@@ -146,7 +156,7 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
 
         //requestLocationPermission()
         requestLocationEnable()
-
+        showProgressBarLocation()
         binding.btnRecenter.setOnClickListener {
             /* currentLocation?.let {
                  it.toLatLong().let { latLng ->
@@ -205,7 +215,13 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
         requestLocation()
 
     }
+    fun showProgressBarLocation() {
+        locationProg.show()
+    }
 
+    fun hideProgressBarLocation() {
+        locationProg.cancel()
+    }
     //lifecycle methods
     override fun onPause() {
         super.onPause()
@@ -225,6 +241,7 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
     override fun onResume() {
         super.onResume()
         requestLocationEnable()
+        showProgressBarLocation()
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .setWaitForAccurateLocation(true)
             .setMinUpdateIntervalMillis(1000)
@@ -504,7 +521,9 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation
+
             if (location != null) {
+                hideProgressBarLocation()
                 Log.e("currentLocNewFusedGPS", location.toString())
                 Toast.makeText(this@NavigateVehicleRefactored, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
                 updateLocation(location)
@@ -572,13 +591,16 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
             )// Example end point
             googleMap.addPolyline(
                 PolylineOptions().add(startPoint, endPoint)
-                    .width
-                        (5f)
+                    .width(15f)
                     .color(Color.RED)
                     .geodesic(true)
             )
             addCursorMarker(LatLng(currentLocation!!.latitude, currentLocation!!.longitude))
             if (modelCode != "null" || modelCode.isNotEmpty() && colorCode != "null" || colorCode.isNotEmpty()) {
+
+            /*    val gifDrawable = generateCarLocationIcon(modelCode, colorCode)
+                val bitmap = gifDrawable?.bitmap ?: return*/
+
                 vehicleOption = MarkerOptions().position(
                     LatLng(
                         vehicleLocation?.latitude!!,
@@ -593,8 +615,11 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
                             )!!
                         )
                     )
+
                 vehicleMarker = googleMap?.addMarker(vehicleOption!!)
             } else {
+ /*               val gifDrawable = generateCarLocationIcon(modelCode, colorCode)
+                val bitmap = gifDrawable?.bitmap ?: return*/
 
                 vehicleOption = MarkerOptions().position(
                     LatLng(
@@ -610,6 +635,12 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
                             )!!
                         )
                     )
+
+                 /*.icon(
+                        BitmapDescriptorFactory.fromBitmap(
+                            bitmap
+                        )
+                    )*/
                 vehicleMarker = googleMap?.addMarker(vehicleOption!!)
 
             }
@@ -743,6 +774,44 @@ class NavigateVehicleRefactored : AppCompatActivity(), OnMapReadyCallback, Senso
         )
         return modelColorMap[modelCode]?.get(colorDescription) ?: R.drawable.ic_car
     }
+/*    fun generateCarLocationIcon(modelCode: String, colorDescription: String): BitmapDrawable? {
+        val height = 50
+        val width = 50
+        val resourceId = getModelColorResourceId(modelCode, colorDescription)
+        val inputStream = resources.openRawResource(resourceId)
+        val movie = Movie.decodeStream(inputStream)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        movie.draw(canvas, 0f, 0f)
+        return BitmapDrawable(resources, bitmap)
+    }*/
+
+/*    private fun getModelColorResourceId(modelCode: String, colorDescription: String): Int {
+        val modelColorMap = mapOf(
+            "XUV300" to mapOf(
+                "Red" to R.raw.car_location,
+                "Black" to R.raw.car_location,
+                "White" to R.raw.car_location,
+                "Blue" to R.raw.car_location
+            ),
+            "XUV500" to mapOf(
+                "Red" to R.raw.car_location,
+                "Black" to R.raw.car_location,
+                "White" to R.raw.car_location,
+                "Blue" to R.raw.car_location
+            ),
+            "XUV700" to mapOf(
+                "Red" to R.raw.car_location,
+                "Black" to R.raw.car_location,
+                "White" to R.raw.car_location,
+                "Blue" to R.raw.car_location
+            )
+        )
+        return modelColorMap[modelCode]?.get(colorDescription) ?: R.raw.car_location
+    }*/
+
+
+
 
     ///sensors
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {

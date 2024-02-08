@@ -122,6 +122,7 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
 
     private val drawnPolygons: ArrayList<Polygon> = ArrayList()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationProg: ProgressDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,10 +131,14 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         progress = ProgressDialog(this)
         progress.setMessage("Loading...")
+        locationProg=ProgressDialog(this)
+        locationProg.setMessage("Please wait,\nGoogle Map Getting Ready...")
+        locationProg.setCancelable(false)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         requestLocation()
+        showProgressBarLocation()
         Places.initialize(
             applicationContext,
             "AIzaSyCvAnBPc3w0-beVe67PMo3WEPf5OiLDStw"
@@ -504,6 +509,13 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
 
 
     }
+    fun showProgressBarLocation() {
+        locationProg.show()
+    }
+
+    fun hideProgressBarLocation() {
+        locationProg.cancel()
+    }
     private fun requestLocation() {
         /*        val locationRequest = LocationRequest.create()
                 locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
@@ -546,6 +558,7 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation
             if (location != null) {
+                hideProgressBarLocation()
                 Log.e("currentLocNewFusedGPS", location.toString())
                 // Toast.makeText(this@ParkReparkActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
                 updateLocation(location)
@@ -658,7 +671,7 @@ class SetDealerGeofenceCoordinatesActivity : AppCompatActivity(),
     override fun onResume() {
         super.onResume()
         binding.mapview.onResume()
-
+        showProgressBarLocation()
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .setWaitForAccurateLocation(false)
             .setMinUpdateIntervalMillis(1000)

@@ -1,6 +1,8 @@
 package com.kemarport.kymsmahindra.helper;
 
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -9,6 +11,7 @@ import androidx.annotation.NonNull;
 
 
 import com.kemarport.kymsmahindra.activity.newactivity.ParkReparkActivity;
+
 import com.zebra.rfid.api3.ACCESS_OPERATION_CODE;
 import com.zebra.rfid.api3.ACCESS_OPERATION_STATUS;
 import com.zebra.rfid.api3.Antennas;
@@ -35,6 +38,8 @@ import com.zebra.rfid.api3.TagData;
 import com.zebra.rfid.api3.TriggerInfo;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler {
 
@@ -49,12 +54,13 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
     TextView textView;
     private ParkReparkActivity context;
     // general
-    private int MAX_POWER = 270;
-    private int POWER_REQUIRED = 130;
+
+    private int MAX_POWER = 30;
+    private int POWER_REQUIRED = 50;
     // In case of RFD8500 change reader name with intended device below from list of paired RFD8500
     //String readername = "RFD8500123";
      //String readername = "RFD8500123";
-    String readername = "RFD4031-G10B700-IN";
+    String readerName = "RFD4031-G10B700-JP";
 
     public void init(ParkReparkActivity activity) {
         // application context
@@ -201,20 +207,19 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            connectReader();
+        }
+    }
+    private synchronized void connectReader(){
+        if(!isReaderConnected()){
             new ConnectionTask().execute();
         }
     }
-
     private class ConnectionTask extends AsyncTask<Void, Void, String> {
-        @NonNull
         @Override
         protected String doInBackground(Void... voids) {
             Log.d(TAG, "ConnectionTask");
-            try {
-                GetAvailableReader();
-            } catch (InvalidUsageException e) {
-                throw new RuntimeException(e);
-            }
+            GetAvailableReader();
             if (reader != null)
                 return connect();
             return "Failed to find or connect reader";
@@ -228,27 +233,32 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
         }
     }
 
-    private synchronized void GetAvailableReader() throws InvalidUsageException {
+
+    private synchronized void GetAvailableReader() {
         Log.d(TAG, "GetAvailableReader");
         if (readers != null) {
             readers.attach(this);
-            if (readers.GetAvailableRFIDReaderList() != null) {
-                availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
-                if (availableRFIDReaderList.size() != 0) {
-                    // if single reader is available then connect it
-                    if (availableRFIDReaderList.size() == 1) {
-                        readerDevice = availableRFIDReaderList.get(0);
-                        reader = readerDevice.getRFIDReader();
-                    } else {
-                        // search reader specified by name
-                        for (ReaderDevice device : availableRFIDReaderList) {
-                            if (device.getName().equals(readername)) {
-                                readerDevice = device;
-                                reader = readerDevice.getRFIDReader();
+            try {
+                if (readers.GetAvailableRFIDReaderList() != null) {
+                    availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
+                    if (availableRFIDReaderList.size() != 0) {
+                        // if single reader is available then connect it
+                        if (availableRFIDReaderList.size() == 1) {
+                            readerDevice = availableRFIDReaderList.get(0);
+                            reader = readerDevice.getRFIDReader();
+                        } else {
+                            // search reader specified by name
+                            for (ReaderDevice device : availableRFIDReaderList) {
+                                if (device.getName().equals(readerName)) {
+                                    readerDevice = device;
+                                    reader = readerDevice.getRFIDReader();
+                                }
                             }
                         }
                     }
                 }
+            }catch (InvalidUsageException ie){
+
             }
         }
     }
@@ -257,7 +267,7 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
     @Override
     public void RFIDReaderAppeared(ReaderDevice readerDevice) {
         Log.d(TAG, "RFIDReaderAppeared " + readerDevice.getName());
-        new ConnectionTask().execute();
+        connectReader();
     }
 
     @Override
@@ -276,7 +286,10 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
                     // Establish connection to the RFID Reader
                     reader.connect();
                     ConfigureReader();
-                    return "Reader Connected";
+                    if(reader.isConnected()){
+                        //return "Connected: " + reader.getHostName();
+                        return "Connected";
+                    }
                 }
             } catch (InvalidUsageException e) {
                 e.printStackTrace();
@@ -284,7 +297,8 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
                 e.printStackTrace();
                 Log.d(TAG, "OperationFailureException " + e.getVendorMessage());
                 String des = e.getResults().toString();
-                return "Connection failed" + e.getVendorMessage() + " " + des;
+                //return "Connection failed" + e.getVendorMessage() + " " + des;
+                return "";
             }
         }
         return "";
@@ -315,7 +329,6 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
                 MAX_POWER = reader.ReaderCapabilities.getTransmitPowerLevelValues().length - 1;
                 // set antenna configurations
                 Antennas.AntennaRfConfig config = reader.Config.Antennas.getAntennaRfConfig(1);
-                //POWER_REQUIRED = Utils.getSharedPrefsInteger(context, Constants.ANTENNA_POWER, Constants.ANTENNA_POWER_SHARED);
                 config.setTransmitPowerIndex(POWER_REQUIRED);
                 config.setrfModeTableIndex(0);
                 config.setTari(0);
@@ -335,6 +348,7 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
         }
     }
 
+
     private synchronized void disconnect() {
         Log.d(TAG, "disconnect " + reader);
         try {
@@ -345,7 +359,6 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
                     @Override
                     public void run() {
                         //textView.setText("Disconnected");
-                        Toast.makeText(context, "Disconnected", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -358,6 +371,7 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
         }
     }
 
+
     private synchronized void dispose() {
         try {
             if (readers != null) {
@@ -369,7 +383,6 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
             e.printStackTrace();
         }
     }
-
     public synchronized void performInventory() {
         // check reader connection
         if (!isReaderConnected())
@@ -382,8 +395,7 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
             e.printStackTrace();
         }
     }
-
-    public synchronized void stopInventory() {
+    public  synchronized void stopInventory() {
         // check reader connection
         if (!isReaderConnected())
             return;
@@ -395,7 +407,6 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
             e.printStackTrace();
         }
     }
-
     public void disableDpoState() {
         if (!isReaderConnected())
             return;
@@ -452,9 +463,92 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
         }
     }
 
+    public class EventHandler implements RfidEventsListener {
+        private static final long DEBOUNCE_DELAY_MS = 500; // Adjust the debounce delay as needed
+        private static final long LIST_CLEAR_DELAY_MS = 300; // Adjust the debounce delay as needed
+        private Set<String> processedTags = new HashSet<>(); // Store processed tag IDs
+        private long lastTagReadTime = 0; // Timestamp of the last tag read
+        private Handler handler = new Handler(Looper.getMainLooper());
+        // Read Event Notification
+        public void eventReadNotify(RfidReadEvents e) {
+            long currentTime = System.currentTimeMillis();
+            // Recommended to use new method getReadTagsEx for better performance in case of large tag population
+            TagData[] myTags = reader.Actions.getReadTags(1);
+            if (myTags != null) {
+                for (TagData tag : myTags) {
+                    String tagId = tag.getTagID();
+                    if (!processedTags.contains(tagId) && (currentTime - lastTagReadTime) > DEBOUNCE_DELAY_MS) {
+                        // Check if tag has not been processed and debounce delay has passed
+                        Log.d(TAG, "Tag ID " + tagId);
+                        if (tag.getOpCode() == ACCESS_OPERATION_CODE.ACCESS_OPERATION_READ &&
+                                tag.getOpStatus() == ACCESS_OPERATION_STATUS.ACCESS_SUCCESS) {
+                            if (tag.getMemoryBankData().length() > 0) {
+                                Log.d(TAG, " Mem Bank Data " + tag.getMemoryBankData());
+                            }
+                        }
+                        if (tag.isContainsLocationInfo()) {
+                            short dist = tag.LocationInfo.getRelativeDistance();
+                            Log.d(TAG, "Tag relative distance " + dist);
+                        }
+                        processedTags.add(tagId); // Add tag to processed set
+                        lastTagReadTime = currentTime; // Update last tag read time
+                        // Possibly handle tag data responses on a parallel thread
+                        handler.postDelayed(() -> processedTags.clear(), LIST_CLEAR_DELAY_MS);
+                        new AsyncDataUpdate().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, tag);
+                    }
+                }
+            }
+        }
+        public void eventStatusNotify(RfidStatusEvents rfidStatusEvents) {
+            Log.d(TAG, "Status Notification: " + rfidStatusEvents.StatusEventData.getStatusEventType());
+            if (rfidStatusEvents.StatusEventData.getStatusEventType() == STATUS_EVENT_TYPE.HANDHELD_TRIGGER_EVENT) {
+                if (rfidStatusEvents.StatusEventData.HandheldTriggerEventData.getHandheldEvent() == HANDHELD_TRIGGER_EVENT_TYPE.HANDHELD_TRIGGER_PRESSED) {
+                    new AsyncTask<Void, Void, Void>() {
+                        @Override
+                        protected Void doInBackground(Void... voids) {
+                            context.handleTriggerPress(true);
+                            return null;
+                        }
+                    }.execute();
+                }
+                if (rfidStatusEvents.StatusEventData.HandheldTriggerEventData.getHandheldEvent() == HANDHELD_TRIGGER_EVENT_TYPE.HANDHELD_TRIGGER_RELEASED) {
+                    new AsyncTask<Void, Void, Void>() {
+                        @Override
+                        protected Void doInBackground(Void... voids) {
+                            context.handleTriggerPress(false);
+                            return null;
+                        }
+                    }.execute();
+                }
+            }
+        }
+
+    }
+    private class AsyncDataUpdate extends AsyncTask<TagData, Void, Void> {
+        @Override
+        protected Void doInBackground(TagData... params) {
+            TagData tag = params[0]; // Get the first TagData object from the params array
+            context.handleTagdata(new TagData[]{tag}); // Pass a single-element array containing the tag to handleTagdata
+            return null;
+        }
+    }
+
+    public interface ResponseHandlerInterface {
+        void handleTagdata(TagData[] tagData);
+
+        void handleTriggerPress(boolean pressed);
+        //void handleStatusEvents(Events.StatusEventData eventData);
+    }
+
+}
+
+
+
+
+    //og code
     // Read/Status Notify handler
     // Implement the RfidEventsLister class to receive event notifications
-    public class EventHandler implements RfidEventsListener {
+   /* public class EventHandler implements RfidEventsListener {
         // Read Event Notification
         public void eventReadNotify(RfidReadEvents e) {
             // Recommended to use new method getReadTagsEx for better performance in case of large tag population
@@ -511,13 +605,5 @@ public class RFIDHandlerForParkRepark implements Readers.RFIDReaderEventHandler 
             context.handleTagdata(params[0]);
             return null;
         }
-    }
+    }*/
 
-    public interface ResponseHandlerInterface {
-        void handleTagdata(TagData[] tagData);
-
-        void handleTriggerPress(boolean pressed);
-        //void handleStatusEvents(Events.StatusEventData eventData);
-    }
-
-}

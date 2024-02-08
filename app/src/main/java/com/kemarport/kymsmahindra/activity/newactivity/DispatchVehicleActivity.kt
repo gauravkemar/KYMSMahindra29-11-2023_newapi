@@ -88,8 +88,8 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     var newLat = 0.0
     var newLng = 0.0
 
-/*    var t = Timer()
-    var tt: TimerTask? = null*/
+    /*    var t = Timer()
+        var tt: TimerTask? = null*/
     private lateinit var viewModel: ParkReparkViewModel
 
     private lateinit var session: SessionManager
@@ -98,6 +98,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     private var userName: String? = ""
     private var locationId: String? = ""
     private lateinit var progress: ProgressDialog
+    private lateinit var locationProg: ProgressDialog
 
     val coordinatesMap = HashMap<String, ArrayList<LatLng>>()
     val locationMap = HashMap<String, ArrayList<LatLng>>()
@@ -123,10 +124,10 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         if (isBarcodeInit) {
             deInitScanner()
         }
-      /*  if (t != null) {
-            t.cancel()
-            tt!!.cancel()
-        }*/
+        /*  if (t != null) {
+              t.cancel()
+              tt!!.cancel()
+          }*/
         resumeFlag = true
         stopLocationUpdates()
     }
@@ -163,6 +164,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         super.onStop()
         stopLocationUpdates()
     }
+
     fun performInventory() {
         rfidHandler!!.performInventory()
     }
@@ -170,33 +172,36 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
     fun stopInventory() {
         rfidHandler!!.stopInventory()
     }
-    private fun defaultVinApiCall(){
+
+    private fun defaultVinApiCall() {
         val intent = intent
         val vin = intent.getStringExtra("vin")
         binding.tvBarcode.setText(vin)
         vin?.let { getPrdOutStatus(it) }
     }
+
     fun getPrdOutStatus(scanned: String) {
 
         viewModel.getVehicleStatus(
             token!!,
             Constants.BASE_URL,
-            GetVehicleStatusRequest( scanned,"")
+            GetVehicleStatusRequest(scanned, "")
         )
 
     }
+
     var coordinatePref = ""
 
     lateinit var coordinates: ArrayList<LatLng>
     private var currentLatitude: Double = 0.0
     private var currentLongitude: Double = 0.0
 
-    private var flagCurrentLoc=true
+    private var flagCurrentLoc = true
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = DataBindingUtil.setContentView(this,R.layout.activity_dispatch_vehicle)
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_dispatch_vehicle)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         binding.listener = this
         binding.parkInVehicleToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white))
@@ -223,9 +228,14 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         progress = ProgressDialog(this)
         progress.setMessage("Loading...")
 
+        locationProg = ProgressDialog(this)
+        locationProg.setMessage("Please wait,\nGoogle Map Getting Ready...")
+        locationProg.setCancelable(false)
+
         session = SessionManager(this)
         coordinatePref =
-            Utils.getSharedPrefs(this@DispatchVehicleActivity, Constants.USER_COORDINATES).toString()
+            Utils.getSharedPrefs(this@DispatchVehicleActivity, Constants.USER_COORDINATES)
+                .toString()
         coordinates = parseStringToList(coordinatePref)
         if (session.getRole().equals("Driver")) {
             binding.parkInVehicleToolbar.title = "Park/Repark"
@@ -237,6 +247,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
 
         requestLocationEnable()
         requestLocation()
+        showProgressBarLocation()
         userDetails = session.getUserDetails()
         token = userDetails["jwtToken"]
         userName = userDetails["userName"]
@@ -296,36 +307,38 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                         //for (e in resultResponse) {
                         if (resultResponse != null) {
 
-                            for (e in resultResponse)
-                            {
-                                Log.d("thiscoordinates",e.coordinates.toString())
-                                if(e.locationType.equals("Internal"))
-                                {
+                            for (e in resultResponse) {
 
-                                    if(e.coordinates!=null)
-                                    {
+                                if (e.locationType.equals("Internal")) {
 
-                                        var coordinates: ArrayList<LatLng> = parseStringToList(e.coordinates!!)
-                                        if (!coordinatesMap.containsKey(e.locationId.toString())) {
-                                            coordinatesMap[e.locationId.toString()] = coordinates
-                                            //  idMap[e.locationCode] = "${resultResponse.locationId}"
-                                        }
-                                        if(!locationMap.containsKey(e.locationName))
-                                        {
-                                            locationMap[e.locationName] = coordinates
-                                        }
+                                    if (e.coordinates != null) {
+                                        if (!e.coordinates.equals("[]")) {
+                                            var coordinates: ArrayList<LatLng> =
+                                                parseStringToList(e.coordinates!!)
+                                            if (!coordinatesMap.containsKey(e.locationId.toString())) {
+                                                coordinatesMap[e.locationId.toString()] =
+                                                    coordinates
+                                                //  idMap[e.locationCode] = "${resultResponse.locationId}"
+                                            }
+                                            if (!locationMap.containsKey(e.locationName)) {
+                                                locationMap[e.locationName] = coordinates
+                                            }
 
-                                        val polygonOptions =
-                                            PolygonOptions().addAll(coordinates).clickable(false)
-                                                .strokeColor(
-                                                    ContextCompat.getColor(
-                                                        this,
-                                                        R.color.colorPrimaryLight
+                                            val polygonOptions =
+                                                PolygonOptions().addAll(coordinates)
+                                                    .clickable(false)
+                                                    .strokeColor(
+                                                        ContextCompat.getColor(
+                                                            this,
+                                                            R.color.colorPrimaryLight
+                                                        )
                                                     )
-                                                )
-                                                .strokeWidth(3f)
-                                        map!!.addPolygon(polygonOptions)
+                                                    .strokeWidth(3f)
+                                            map!!.addPolygon(polygonOptions)
+                                        }
+
                                     }
+
 
                                 }
                             }
@@ -339,7 +352,10 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                     hideProgressBar()
                     response.message?.let { resultResponse ->
                         Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
-                        session.showToastAndHandleErrors(resultResponse,this@DispatchVehicleActivity)
+                        session.showToastAndHandleErrors(
+                            resultResponse,
+                            this@DispatchVehicleActivity
+                        )
                     }
                 }
 
@@ -356,8 +372,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                 is Resource.Success -> {
                     hideProgressBar()
                     response.data?.let { resultResponse ->
-                        if(resultResponse.message!=null)
-                        {
+                        if (resultResponse.message != null) {
                             Toasty.success(
                                 this@DispatchVehicleActivity,
                                 resultResponse.message.toString(),
@@ -397,7 +412,10 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
 
                     response.message?.let { resultResponse ->
                         Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
-                        session.showToastAndHandleErrors(resultResponse,this@DispatchVehicleActivity)
+                        session.showToastAndHandleErrors(
+                            resultResponse,
+                            this@DispatchVehicleActivity
+                        )
                     }
                 }
 
@@ -489,7 +507,8 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                         binding.clVehicleImgs.visibility = View.VISIBLE
 
                         binding.tvVinValue.text = resultResponse.vin.orEmpty()
-                        binding.tvModelCodeValue.text = resultResponse.modelCode?.toString().orEmpty()
+                        binding.tvModelCodeValue.text =
+                            resultResponse.modelCode?.toString().orEmpty()
                         binding.tvStatusValue.text = resultResponse.status.orEmpty()
 
                         val buttonColor: Int
@@ -502,16 +521,19 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                                 buttonText = "Dispatch Vehicle"
                                 isButtonEnabled = true
                             }
+
                             "Parking", "Re Park" -> {
                                 buttonColor = color
                                 buttonText = "Dispatch Vehicle"
                                 isButtonEnabled = true
                             }
+
                             "Delivered" -> {
                                 buttonColor = grey
                                 buttonText = "Dispatch Vehicle"
                                 isButtonEnabled = false
                             }
+
                             else -> {
                                 buttonColor = grey
                                 buttonText = "Dispatch Vehicle"
@@ -520,7 +542,10 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                         }
 
                         with(binding.parkReparkBtn) {
-                            ViewCompat.setBackgroundTintList(this, ColorStateList.valueOf(buttonColor))
+                            ViewCompat.setBackgroundTintList(
+                                this,
+                                ColorStateList.valueOf(buttonColor)
+                            )
                             setText(buttonText)
                             isEnabled = isButtonEnabled
 
@@ -528,15 +553,15 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                                 setOnClickListener {
                                     resultResponse.vin?.let { it1 ->
                                         checkVehicleInsideGeofenceRFIDNew(
-                                            it1, "Dispatched")
+                                            it1, "Dispatched"
+                                        )
                                     }
                                 }
                             }
                         }
-                        var vehicleInfoMessage=resultResponse.message
+                        var vehicleInfoMessage = resultResponse.message
 
-                        if(!vehicleInfoMessage.isNullOrEmpty())
-                        {
+                        if (!vehicleInfoMessage.isNullOrEmpty()) {
                             Toasty.warning(
                                 this@DispatchVehicleActivity,
                                 vehicleInfoMessage,
@@ -548,6 +573,7 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
 
                     }
                 }
+
                 is Resource.Error -> {
                     hideProgressBar()
                     clear()
@@ -560,7 +586,10 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
 
                     response.message?.let { resultResponse ->
                         Toast.makeText(this, resultResponse, Toast.LENGTH_SHORT).show()
-                        session.showToastAndHandleErrors(resultResponse,this@DispatchVehicleActivity)
+                        session.showToastAndHandleErrors(
+                            resultResponse,
+                            this@DispatchVehicleActivity
+                        )
 
                     }
                 }
@@ -572,24 +601,26 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
                 else -> {}
             }
         }
- /*       tt = object : TimerTask() {
-            override fun run() {
-                getLocationNew()
-            }
-        }
+        /*       tt = object : TimerTask() {
+                   override fun run() {
+                       getLocationNew()
+                   }
+               }
 
-        t.scheduleAtFixedRate(tt, 1000, 1000)*/
+               t.scheduleAtFixedRate(tt, 1000, 1000)*/
     }
+
     private fun requestLocationEnable() {
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             session.showAlertMessage(this@DispatchVehicleActivity)
         }
     }
+
     private fun requestLocation() {
-    /*    val locationRequest = LocationRequest.create()
-        locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
-        locationRequest.interval = 1000 //4 seconds*/
+        /*    val locationRequest = LocationRequest.create()
+            locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+            locationRequest.interval = 1000 //4 seconds*/
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .setWaitForAccurateLocation(true)
             .setMinUpdateIntervalMillis(1000)
@@ -606,40 +637,45 @@ class DispatchVehicleActivity : AppCompatActivity(), View.OnClickListener,
         ) {
             return
         }
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
-   /*     fusedLocationClient.requestLocationUpdates(
+        fusedLocationClient.requestLocationUpdates(
             locationRequest,
-            object : com.google.android.gms.location.LocationCallback() {
-                override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
-                    val location = locationResult.lastLocation
-                    // Handle the location update here
-                    if (location != null) {
-                        //Log.e("fromfused",location.toString())
-                        Log.e("currentLocNewFusedGPS",location.toString())
-                        updateLocation(location)
-                    }
-                }
-            },
-            null
-        )*/
+            locationCallback,
+            Looper.getMainLooper()
+        )
+        /*     fusedLocationClient.requestLocationUpdates(
+                 locationRequest,
+                 object : com.google.android.gms.location.LocationCallback() {
+                     override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
+                         val location = locationResult.lastLocation
+                         // Handle the location update here
+                         if (location != null) {
+                             //Log.e("fromfused",location.toString())
+                             Log.e("currentLocNewFusedGPS",location.toString())
+                             updateLocation(location)
+                         }
+                     }
+                 },
+                 null
+             )*/
     }
 
 
-
-private val locationCallback = object : LocationCallback() {
-    override fun onLocationResult(locationResult: LocationResult) {
-        val location = locationResult.lastLocation
-        if (location != null) {
-            Log.e("currentLocNewFusedGPS", location.toString())
-            //Toast.makeText(this@DispatchVehicleActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
-            updateLocation(location)
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val location = locationResult.lastLocation
+            if (location != null) {
+                hideProgressBarLocation()
+                Log.e("currentLocNewFusedGPS", location.toString())
+                //Toast.makeText(this@DispatchVehicleActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
+                updateLocation(location)
+            }
         }
     }
-}
 
     private fun stopLocationUpdates() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
+
     private fun updateLocation(location: Location) {
 
         runOnUiThread(Runnable {
@@ -656,39 +692,42 @@ private val locationCallback = object : LocationCallback() {
             currentMarker = map!!.addMarker(markerOptions)
 
             Log.e(TAG, "Latitude/Longitude - $newLat,$newLng")
-            if(flagCurrentLoc)
-            {
+            if (flagCurrentLoc) {
                 recentr()
-                flagCurrentLoc=false
+                flagCurrentLoc = false
             }
-
 
 
         })
 
     }
+
     fun getVehicleStatus(scanned: String) {
         if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
             viewModel.getVehicleStatus(
                 token!!,
                 Constants.BASE_URL,
-                GetVehicleStatusRequest("",scanned,)
+                GetVehicleStatusRequest("", scanned)
             )
         } else {
-            Toasty.warning(
-                this@DispatchVehicleActivity,
-                "You are not inside Service Area!!",
-                Toasty.LENGTH_SHORT
-            ).show()
+            runOnUiThread {
+                Toasty.warning(
+                    this@DispatchVehicleActivity,
+                    "You are not inside Service Area!!",
+                    Toasty.LENGTH_SHORT
+                ).show()
+            }
+
         }
 
     }
+
     fun getVehicleStatusBarcode(scanned: String) {
         if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
             viewModel.getVehicleStatus(
                 token!!,
                 Constants.BASE_URL,
-                GetVehicleStatusRequest(scanned,"")
+                GetVehicleStatusRequest(scanned, "")
             )
         } else {
             Toasty.warning(
@@ -700,7 +739,7 @@ private val locationCallback = object : LocationCallback() {
 
     }
 
-    private fun initBarcode(){
+    private fun initBarcode() {
         isRFIDInit = false
         isBarcodeInit = true
         //rfidHandler!!.onPause()
@@ -716,6 +755,7 @@ private val locationCallback = object : LocationCallback() {
             )
         }
     }
+
     fun checkVehicleInsideGeofenceRFIDNew(scanned: String, s: String) {
         try {
             var insideGeofence = false
@@ -731,9 +771,7 @@ private val locationCallback = object : LocationCallback() {
                         break
                     }
                 }
-            }
-            else
-            {
+            } else {
                 Toasty.warning(
                     this@DispatchVehicleActivity,
                     "You are not inside Service Area!!",
@@ -747,24 +785,34 @@ private val locationCallback = object : LocationCallback() {
                 viewModel.parkReparkVehicle(
                     token!!,
                     Constants.BASE_URL,
-                    PostVehicleMovementRequest(userName!!, "$newLat,$newLng", s, scanned, geofenceId)
+                    PostVehicleMovementRequest(
+                        userName!!,
+                        "$newLat,$newLng",
+                        s,
+                        scanned,
+                        geofenceId
+                    )
                 )
             } else {
                 // User is not inside any geofence
                 viewModel.parkReparkVehicle(
                     token!!,
                     Constants.BASE_URL,
-                    PostVehicleMovementRequest(userName!!, "$newLat,$newLng", s, scanned, locationId!!.toInt())
+                    PostVehicleMovementRequest(
+                        userName!!,
+                        "$newLat,$newLng",
+                        s,
+                        scanned,
+                        locationId!!.toInt()
+                    )
                 )
-        /*        Toasty.warning(
-                    this@DispatchVehicleActivity,
-                    "You are not inside any parking!!",
-                    Toasty.LENGTH_SHORT
-                ).show()*/
+                /*        Toasty.warning(
+                            this@DispatchVehicleActivity,
+                            "You are not inside any parking!!",
+                            Toasty.LENGTH_SHORT
+                        ).show()*/
             }
-        }
-        catch (e:Exception)
-        {
+        } catch (e: Exception) {
             Toasty.warning(
                 this@DispatchVehicleActivity,
                 e.message.toString(),
@@ -781,7 +829,7 @@ private val locationCallback = object : LocationCallback() {
                     viewModel.parkReparkVehicle(
                         token!!,
                         Constants.BASE_URL,
-                        PostVehicleMovementRequest(userName!!, "$newLat,$newLng", s, scanned,0)
+                        PostVehicleMovementRequest(userName!!, "$newLat,$newLng", s, scanned, 0)
                     )
                 } else {
                     runOnUiThread(Runnable {
@@ -802,6 +850,7 @@ private val locationCallback = object : LocationCallback() {
         }
 
     }
+
     fun containsLocation(point: LatLng, polygon: List<LatLng>, geodesic: Boolean): Boolean {
         return PolyUtil.containsLocation(point, polygon, geodesic)
     }
@@ -825,20 +874,18 @@ private val locationCallback = object : LocationCallback() {
                 currentLatitude = gps.getLatitude()
                 currentLongitude = gps.getLongitude()
                 if (currentMarker != null) currentMarker!!.remove()
-                updateTvCurrentLoc( )
+                updateTvCurrentLoc()
                 val markerOptions =
                     MarkerOptions().position(LatLng(newLat, newLng)).title("You are here!")
                         .icon(BitmapDescriptorFactory.fromBitmap(generateLocationIcon()!!))
                 currentMarker = map!!.addMarker(markerOptions)
                 Log.e(TAG, "Latitude/Longitude - $newLat,$newLng")
-                if(flagCurrentLoc)
-                {
+                if (flagCurrentLoc) {
                     recentr()
-                    flagCurrentLoc=false
+                    flagCurrentLoc = false
                 }
                 val currentPos = LatLng(newLat, newLng)
-                if(currentPos!=null && map!=null)
-                {
+                if (currentPos != null && map != null) {
 
                     map!!.setOnCameraMoveListener {
                         val cameraPosition = map!!.cameraPosition
@@ -848,17 +895,18 @@ private val locationCallback = object : LocationCallback() {
             }
         })
     }
- /*   fun updateTvCurrentLoc( ) {
-        if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
-            for ((key, value) in locationMap.entries) {
-                if (containsLocation(LatLng(newLat, newLng), value, false)) {
-                    binding.tvCurrentAt.setText("You are at $key !!")
-                } else {
-                    binding.tvCurrentAt.setText("You are at Unkown Location !!")
-                }
-            }
-        }
-        *//*else {
+
+    /*   fun updateTvCurrentLoc( ) {
+           if (containsLocation(LatLng(currentLatitude, currentLongitude), coordinates, false)) {
+               for ((key, value) in locationMap.entries) {
+                   if (containsLocation(LatLng(newLat, newLng), value, false)) {
+                       binding.tvCurrentAt.setText("You are at $key !!")
+                   } else {
+                       binding.tvCurrentAt.setText("You are at Unkown Location !!")
+                   }
+               }
+           }
+           *//*else {
         }*//*
     }*/
     fun updateTvCurrentLoc() {
@@ -935,11 +983,14 @@ private val locationCallback = object : LocationCallback() {
     override fun onResume() {
         super.onResume()
         binding.mapview.onResume()
+        showProgressBarLocation()
         if (resumeFlag) {
             resumeFlag = false
             if (Build.MANUFACTURER.contains("Zebra Technologies") || Build.MANUFACTURER.contains("Motorola Solutions")) {
-                initBarcodeManager()
-                initScanner()
+                /*        initBarcodeManager()
+                        initScanner()*/
+
+                defaultRFID()
             }
         }
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
@@ -957,17 +1008,21 @@ private val locationCallback = object : LocationCallback() {
         ) {
             return
         }
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
-   /*     if (t == null) {
-            t = Timer()
-            tt = object : TimerTask() {
-                override fun run() {
-                    getLocationNew()
-                }
-            }
-            t.scheduleAtFixedRate(tt, 1000, 1000)
-        }*/
-        flagCurrentLoc=true
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback,
+            Looper.getMainLooper()
+        )
+        /*     if (t == null) {
+                 t = Timer()
+                 tt = object : TimerTask() {
+                     override fun run() {
+                         getLocationNew()
+                     }
+                 }
+                 t.scheduleAtFixedRate(tt, 1000, 1000)
+             }*/
+        flagCurrentLoc = true
     }
 
     fun initBarcodeManager() {
@@ -1088,11 +1143,10 @@ private val locationCallback = object : LocationCallback() {
         }
     }
 
-    fun recentr(){
+    fun recentr() {
         if (currentMarker != null) currentMarker!!.remove()
         val currentPos = LatLng(newLat, newLng)
-        if(currentPos!=null && map!=null)
-        {
+        if (currentPos != null && map != null) {
             map!!.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
             map!!.animateCamera(CameraUpdateFactory.zoomTo(25f))
             println("la-$newLat, $newLng")
@@ -1121,7 +1175,7 @@ private val locationCallback = object : LocationCallback() {
         }
     }
 
-    private fun clear(){
+    private fun clear() {
         val grey = Color.parseColor("#80D9D9D9") // Replace with your desired color
         binding.tvBarcode.setText("")
         binding.tvVinValue.setText("")
@@ -1154,6 +1208,14 @@ private val locationCallback = object : LocationCallback() {
 
     fun hideProgressBar() {
         progress.cancel()
+    }
+
+    fun showProgressBarLocation() {
+        locationProg.show()
+    }
+
+    fun hideProgressBarLocation() {
+        locationProg.cancel()
     }
 
     fun parseStringToList(inputString: String): ArrayList<LatLng> {

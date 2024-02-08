@@ -116,6 +116,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     private val drawnPolygons: ArrayList<Polygon> = ArrayList()
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationProg: ProgressDialog
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -130,8 +131,13 @@ class SetYardGeofenceActivity : AppCompatActivity(),
         binding.setGeofenceToolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white))
         setSupportActionBar(binding.setGeofenceToolbar)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        requestLocation()
 
+        locationProg=ProgressDialog(this)
+        locationProg.setMessage("Please wait,\nGoogle Map Getting Ready...")
+        locationProg.setCancelable(false)
+
+        requestLocation()
+        showProgressBarLocation()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
         Toasty.Config.getInstance()
@@ -423,11 +429,18 @@ class SetYardGeofenceActivity : AppCompatActivity(),
                null
            )*/
     }
+    fun showProgressBarLocation() {
+        locationProg.show()
+    }
 
+    fun hideProgressBarLocation() {
+        locationProg.cancel()
+    }
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation
             if (location != null) {
+                hideProgressBarLocation()
                 Log.e("currentLocNewFusedGPS", location.toString())
                 // Toast.makeText(this@ParkReparkActivity, "lat-${location.latitude} , Long-${location.longitude}", Toast.LENGTH_SHORT).show()
                 updateLocation(location)
@@ -732,7 +745,7 @@ class SetYardGeofenceActivity : AppCompatActivity(),
     override fun onResume() {
         super.onResume()
         binding.mapview.onResume()
-
+        showProgressBarLocation()
 /*
         if (t == null) {
             t = Timer()

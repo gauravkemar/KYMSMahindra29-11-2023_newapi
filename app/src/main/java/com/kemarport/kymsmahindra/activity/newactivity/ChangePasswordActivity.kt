@@ -283,7 +283,6 @@ class ChangePasswordActivity : AppCompatActivity() {
                 onBackPressed()
                 return true
             }
-
             else -> return super.onOptionsItemSelected(item)
         }
     }
